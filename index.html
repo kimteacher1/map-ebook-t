@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAP E-BOOK 사회 여행 (Tablet Edition Pro)</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css');
+        * { box-sizing: border-box; font-family: 'NanumSquare', sans-serif; touch-action: none; }
+        body { margin: 0; background: #F0F2F5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; user-select: none; -webkit-user-select: none; }
+        
+        /* 인쇄(PDF 저장) 시 UI 숨김 및 페이지 최적화 */
+        @media print {
+            body { height: auto; overflow: visible; background: white; }
+            #top-header, #floating-toolbar, #slide-menu, #lobby-screen, .popup-menu { display: none !important; }
+            #workspace { display: block; height: auto; }
+            #viewer-area { display: block; overflow: visible; }
+            #zoom-wrapper { transform: none !important; display: flex; gap: 0; flex-wrap: wrap; justify-content: center;}
+            .page-container { box-shadow: none; margin-bottom: 20px; page-break-after: always; }
+        }
+
+        /* 1. 로비 화면 */
+        #lobby-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #F0F2F5; position: relative; z-index: 3000; }
+        .lobby-title { font-size: 42px; font-weight: 800; color: #5D9CEC; margin-bottom: 20px; text-shadow: 0 4px 10px rgba(93,156,236,0.2); }
+        .lobby-subtitle { font-size: 20px; font-weight: 700; color: #666; margin-bottom: 40px; }
+        .recent-btn { background: #34495e; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 20px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-bottom: 40px; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .recent-btn:active { transform: scale(0.95); }
+        .books-wrap { display: flex; gap: 40px; }
+        .book-cover { width: 240px; border-radius: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px rgba(0,0,0,0.15); object-fit: cover; }
+        .book-cover:active { transform: scale(0.95); }
+
+        /* 2. 워크스페이스 & 슬림해진 상단 헤더(48px) */
+        #workspace { display: none; flex-direction: column; height: 100vh; position: relative; background: #E9ECEF; }
+        #top-header { height: 48px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .header-left, .header-right { display: flex; align-items: center; gap: 10px; }
+        .icon-btn { width: 36px; height: 36px; background: white; border: 1px solid #ddd; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .icon-btn:active { background: #f1f3f5; transform: scale(0.95); }
+        .icon-btn.active { background: #5D9CEC; color: white; border-color: #5D9CEC; }
+        .icon-btn.active-green { background: #2ecc71; color: white; border-color: #2ecc71; }
+        .icon-btn.active-yellow { background: #f1c40f; color: white; border-color: #f1c40f; }
+        
+        .current-chapter { font-size: 16px; font-weight: 800; color: #333; margin-left: 5px; }
+        .page-indicator { font-size: 15px; font-weight: 800; color: #5D9CEC; background: #eef5ff; padding: 6px 12px; border-radius: 15px; }
+
+        /* 3. 슬라이드 목차 */
+        #slide-menu { position: fixed; top: 0; left: -360px; width: 360px; height: 100vh; background: white; z-index: 2000; box-shadow: 10px 0 30px rgba(0,0,0,0.2); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        #slide-menu.open { transform: translateX(360px); }
+        .menu-header { padding: 15px 20px; background: #5D9CEC; color: white; font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+        .close-menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        
+        #sidebar-content { flex: 1; overflow-y: auto; }
+        .toc-header { font-size: 16px; font-weight: 800; color: #333; padding: 15px 20px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .unit-title { font-size: 15px; font-weight: 800; color: #5D9CEC; padding: 12px 20px; background: #f8f9fa; border-bottom: 1px solid #eee;}
+        .session-item { padding: 12px 20px 12px 30px; border-bottom: 1px solid #eee; font-size: 15px; color: #555; cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .session-item:active { background: #eef5ff; color: #5D9CEC; }
+        .badge { font-size: 12px; padding: 3px 6px; border-radius: 4px; display: none; }
+        .badge.bm { background: #f1c40f; color: #fff; display: inline-block; }
+        .badge.cp { background: #2ecc71; color: #fff; display: inline-block; }
+
+        #menu-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 1500; }
+
+        /* 4. 중앙 뷰어 영역 */
+        #viewer-area { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        #zoom-wrapper { display: flex; justify-content: center; gap: 10px; transform-origin: center center; transition: transform 0.05s ease-out; }
+        .page-container { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); background: white; display: none; }
+        .page-img { display: block; max-height: 85vh; pointer-events: none; }
+        .draw-canvas { position: absolute; top: 0; left: 0; touch-action: none; }
+
+        /* 5. 드래그 가능한 플로팅 툴바 */
+        #floating-toolbar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #eee; }
+        .drag-handle { display: flex; flex-direction: column; gap: 3px; padding: 10px 5px; cursor: grab; opacity: 0.4; }
+        .drag-handle span { display: block; width: 4px; height: 4px; background: #333; border-radius: 50%; }
+        
+        .tool-btn { width: 44px; height: 44px; border-radius: 12px; border: none; background: transparent; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .tool-btn:active { transform: scale(0.9); background: #f1f3f5; }
+        .tool-btn.active { background: #5D9CEC; color: white; box-shadow: 0 5px 15px rgba(93,156,236,0.3); }
+        
+        .divider { width: 2px; height: 24px; background: #ddd; margin: 0 2px; }
+
+        /* 컬러 팔레트 */
+        .color-group { display: flex; align-items: center; gap: 5px; background: #f8f9fa; padding: 4px; border-radius: 12px; }
+        .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+        .color-dot.selected { border-color: #5D9CEC; transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .color-picker-wrap { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid #ccc; display: inline-block; position: relative;}
+        .color-picker-wrap input[type="color"] { position: absolute; top: -10px; left: -10px; width: 50px; height: 50px; border: none; cursor: pointer;}
+
+        /* 팝업 메뉴들 */
+        .popup-menu { display: none; position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); background: white; border-radius: 16px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1100; min-width: 320px; max-height: 400px; overflow-y: auto;}
+        .popup-menu.show { display: block; }
+        .popup-menu::-webkit-scrollbar { width: 6px; }
+        .popup-menu::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        .popup-title { font-size: 14px; font-weight: 800; color: #5D9CEC; margin: 10px 0; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px; }
+        .popup-title:first-child { margin-top: 0; }
+        
+        .stamp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .stamp-item { font-size: 26px; text-align: center; padding: 8px; background: #f8f9fa; border-radius: 10px; cursor: pointer; }
+        .stamp-item:active { background: #eef5ff; transform: scale(0.9); }
+        .stamp-text-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .text-stamp { font-size: 13px; font-weight: 800; color: #333; background: #f8f9fa; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer;}
+
+        /* 특수 UI */
+        #text-input { display: none; position: absolute; border: 2px dashed #5D9CEC; background: rgba(255,255,255,0.95); font-size: 24px; font-weight: 800; padding: 8px 12px; outline: none; z-index: 10000; border-radius: 6px; min-width: 200px;}
+        #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 15px; opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none; }
+        
+        .layer-menu { display: none; position: absolute; top: 55px; right: 60px; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); z-index: 200; width: 180px; }
+        .layer-menu.show { display: block; }
+        .layer-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 12px; }
+        .layer-row:last-child { margin-bottom: 0; }
+        .toggle-btn { padding: 5px 10px; border: 1px solid #ddd; border-radius: 15px; font-size: 12px; background: #f1f3f5; cursor: pointer; }
+        .toggle-btn.on { background: #5D9CEC; color: white; border-color: #5D9CEC; }
+    </style>
+</head>
+<body>
+
+    <input type="text" id="text-input" placeholder="여기에 글씨 쓰기">
+    <div id="toast">알림</div>
+    <div id="menu-overlay" onclick="toggleMenu(false)"></div>
+
+    <!-- 로비 -->
+    <div id="lobby-screen">
+        <div class="lobby-title">MAP E-BOOK 사회 여행</div>
+        <div class="lobby-subtitle">태블릿에서 더 가볍고 똑똑하게 필기해요!</div>
+        <button class="recent-btn" onclick="loadRecent()">🚀 최근 학습 이어하기</button>
+        <div class="books-wrap">
+            <img class="book-cover" src="https://raw.githubusercontent.com/kimteacher1/map-ebook1/main/1.png" onclick="startBook(1, 1)">
+            <img class="book-cover" src="https://raw.githubusercontent.com/kimteacher1/map-ebook2/main/1.png" onclick="startBook(2, 1)">
+            <img class="book-cover" src="https://raw.githubusercontent.com/kimteacher1/map-ebook3/main/1.png" onclick="startBook(3, 1)">
+        </div>
+    </div>
+
+    <!-- 슬라이드 목차 -->
+    <div id="slide-menu">
+        <div class="menu-header">목차 <button class="close-menu-btn" onclick="toggleMenu(false)">✕</button></div>
+        <div id="sidebar-content"></div>
+    </div>
+
+    <!-- 워크스페이스 -->
+    <div id="workspace">
+        <div id="top-header">
+            <div class="header-left">
+                <button class="icon-btn" onclick="goLobby()" title="로비로">🏠</button>
+                <button class="icon-btn" onclick="toggleMenu(true)" title="목차">☰</button>
+                <div class="current-chapter" id="current-chapter-text">단원명</div>
+                <div class="page-indicator" id="page-indicator">1 / 58 쪽</div>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" id="btn-complete" onclick="toggleComplete()" title="학습 완료">✅</button>
+                <button class="icon-btn" id="btn-bookmark" onclick="toggleBookmark()" title="북마크">⭐</button>
+                <div class="divider" style="height:20px; margin:0;"></div>
+                <button class="icon-btn" onclick="toggleLayerMenu()" title="레이어 설정">👀</button>
+                <button class="icon-btn" onclick="saveAsImage()" title="이미지 저장">💾</button>
+                <button class="icon-btn" onclick="printAsPDF()" title="PDF 인쇄">🖨️</button>
+            </div>
+        </div>
+
+        <!-- 레이어 메뉴 -->
+        <div id="layer-menu" class="layer-menu">
+            <div class="layer-row">펜 필기 <button class="toggle-btn on" onclick="toggleLayer('drawings', this)">ON</button></div>
+            <div class="layer-row">스탬프/텍스트 <button class="toggle-btn on" onclick="toggleLayer('objects', this)">ON</button></div>
+        </div>
+
+        <div id="viewer-area">
+            <div id="zoom-wrapper">
+                <div class="page-container" id="page-left-wrap">
+                    <img class="page-img" id="bg-img-left" src="" crossorigin="anonymous">
+                    <canvas class="draw-canvas" id="canvas-left"></canvas>
+                </div>
+                <div class="page-container" id="page-right-wrap">
+                    <img class="page-img" id="bg-img-right" src="" crossorigin="anonymous">
+                    <canvas class="draw-canvas" id="canvas-right"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 플로팅 툴바 -->
+        <div id="floating-toolbar">
+            <div class="drag-handle" id="toolbar-drag"><span></span><span></span><span></span></div>
+            <button class="tool-btn active" id="btn-move" onclick="setTool('move')">✋</button>
+            <div class="divider"></div>
+            <button class="tool-btn" id="btn-pen" onclick="setTool('pen', 'pen')">✏️</button>
+            <button class="tool-btn" id="btn-highlighter" onclick="setTool('pen', 'highlighter')">🖍️</button>
+            <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">🧽</button>
+            <div class="color-group">
+                <div class="color-dot selected" style="background:#333333" onclick="selectPaletteColor('#333333', this)"></div>
+                <div class="color-dot" style="background:#ff4757" onclick="selectPaletteColor('#ff4757', this)"></div>
+                <div class="color-dot" style="background:#2ed573" onclick="selectPaletteColor('#2ed573', this)"></div>
+                <div class="color-dot" style="background:#1e90ff" onclick="selectPaletteColor('#1e90ff', this)"></div>
+                <div class="color-picker-wrap"><input type="color" id="main-color" value="#333333" onchange="changeColor(event)"></div>
+            </div>
+            <div class="divider"></div>
+            <button class="tool-btn" id="btn-text" onclick="setTool('text')">📝</button>
+            <button class="tool-btn" id="btn-stamp" onclick="togglePopup('stamp-popup')">⭐</button>
+            <div class="divider"></div>
+            <button class="tool-btn" onclick="undo()">↩</button>
+        </div>
+
+        <!-- 스탬프 팝업 (50종 이상 사회과 특화) -->
+        <div id="stamp-popup" class="popup-menu">
+            <div class="popup-title">💯 선생님 칭찬 & 피드백</div>
+            <div class="stamp-grid">
+                <div class="stamp-item" onclick="selectStamp('⭐')">⭐</div>
+                <div class="stamp-item" onclick="selectStamp('💯')">💯</div>
+                <div class="stamp-item" onclick="selectStamp('👍')">👍</div>
+                <div class="stamp-item" onclick="selectStamp('👏')">👏</div>
+                <div class="stamp-item" onclick="selectStamp('💡')">💡</div>
+            </div>
+            <div class="stamp-text-grid" style="margin-top:8px;">
+                <div class="text-stamp" onclick="selectStamp('참 잘했어요!')">참 잘했어요!</div>
+                <div class="text-stamp" onclick="selectStamp('조금 더 고민해봐요')">조금 더 고민해봐요</div>
+                <div class="text-stamp" onclick="selectStamp('❓ 질문 있어요!')">❓ 질문 있어요!</div>
+                <div class="text-stamp" onclick="selectStamp('✅ 다 풀었습니다!')">✅ 다 풀었습니다!</div>
+            </div>
+            <div class="popup-title">🏫 공공기관 & 생활 시설</div>
+            <div class="stamp-grid">
+                <div class="stamp-item" onclick="selectStamp('🏫')">🏫</div>
+                <div class="stamp-item" onclick="selectStamp('🏥')">🏥</div>
+                <div class="stamp-item" onclick="selectStamp('🏛️')">🏛️</div>
+                <div class="stamp-item" onclick="selectStamp('🚓')">🚓</div>
+                <div class="stamp-item" onclick="selectStamp('🚒')">🚒</div>
+                <div class="stamp-item" onclick="selectStamp('🏤')">🏤</div>
+                <div class="stamp-item" onclick="selectStamp('🏦')">🏦</div>
+                <div class="stamp-item" onclick="selectStamp('🏭')">🏭</div>
+                <div class="stamp-item" onclick="selectStamp('🏪')">🏪</div>
+                <div class="stamp-item" onclick="selectStamp('🏟️')">🏟️</div>
+            </div>
+            <div class="popup-title">⛰️ 자연 & 기후</div>
+            <div class="stamp-grid">
+                <div class="stamp-item" onclick="selectStamp('⛰️')">⛰️</div>
+                <div class="stamp-item" onclick="selectStamp('🌲')">🌲</div>
+                <div class="stamp-item" onclick="selectStamp('🌊')">🌊</div>
+                <div class="stamp-item" onclick="selectStamp('☀️')">☀️</div>
+                <div class="stamp-item" onclick="selectStamp('☔')">☔</div>
+                <div class="stamp-item" onclick="selectStamp('⛄')">⛄</div>
+                <div class="stamp-item" onclick="selectStamp('🌾')">🌾</div>
+                <div class="stamp-item" onclick="selectStamp('🌋')">🌋</div>
+                <div class="stamp-item" onclick="selectStamp('🏜️')">🏜️</div>
+                <div class="stamp-item" onclick="selectStamp('🏝️')">🏝️</div>
+            </div>
+            <div class="popup-title">✈️ 교통 & 산업</div>
+            <div class="stamp-grid">
+                <div class="stamp-item" onclick="selectStamp('🚌')">🚌</div>
+                <div class="stamp-item" onclick="selectStamp('🚄')">🚄</div>
+                <div class="stamp-item" onclick="selectStamp('🚢')">🚢</div>
+                <div class="stamp-item" onclick="selectStamp('✈️')">✈️</div>
+                <div class="stamp-item" onclick="selectStamp('🛣️')">🛣️</div>
+                <div class="stamp-item" onclick="selectStamp('🛤️')">🛤️</div>
+                <div class="stamp-item" onclick="selectStamp('⚓')">⚓</div>
+                <div class="stamp-item" onclick="selectStamp('🚜')">🚜</div>
+                <div class="stamp-item" onclick="selectStamp('⛏️')">⛏️</div>
+                <div class="stamp-item" onclick="selectStamp('💻')">💻</div>
+            </div>
+            <div class="popup-title">🌍 세계 (국기 & 랜드마크)</div>
+            <div class="stamp-grid">
+                <div class="stamp-item" onclick="selectStamp('🇰🇷')">🇰🇷</div>
+                <div class="stamp-item" onclick="selectStamp('🇺🇸')">🇺🇸</div>
+                <div class="stamp-item" onclick="selectStamp('🇯🇵')">🇯🇵</div>
+                <div class="stamp-item" onclick="selectStamp('🇨🇳')">🇨🇳</div>
+                <div class="stamp-item" onclick="selectStamp('🇬🇧')">🇬🇧</div>
+                <div class="stamp-item" onclick="selectStamp('🇫🇷')">🇫🇷</div>
+                <div class="stamp-item" onclick="selectStamp('🇩🇪')">🇩🇪</div>
+                <div class="stamp-item" onclick="selectStamp('🗽')">🗽</div>
+                <div class="stamp-item" onclick="selectStamp('🗼')">🗼</div>
+                <div class="stamp-item" onclick="selectStamp('🏯')">🏯</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 원본 데이터 100% 유지
+        const BOOK_DATA = {
+            1: { total: 58, toc: [
+                { title: "표지", sessions: [{n: "표지", p: 1}] }, 
+                { title: "목차", sessions: [{n: "목차", p: 3}] },
+                { title: "1단원 – 나의 첫 공간, 우리 학교 탐구", sessions: [{n: "1차시 - 학교 지도를 만들어요", p: 5}, {n: "2차시 - 화재 위험을 막아요", p: 8}] },
+                { title: "2단원 – 안전하고 쾌적한 등하굣길", sessions: [{n: "3차시 - 안전하게 통학해요", p: 12}, {n: "4차시 - 안전한 통학 환경을 만들어요", p: 15}] },
+                { title: "3단원 – 이웃과 함께하는 우리 동네 탐험", sessions: [{n: "5차시 - 우리 동네를 살펴봐요", p: 19}, {n: "6차시 - 공공기관을 알아봐요", p: 22}, {n: "7차시 - 여가 장소를 알아봐요", p: 25}, {n: "8차시 - 다양한 직업을 고쳐봐요", p: 28}, {n: "9차시 - 불편한 곳을 고쳐요", p: 30}, {n: "10차시 - 갈등을 조정해요", p: 33}, {n: "11차시 - 우리 동네 지도를 그려요", p: 36}] },
+                { title: "4단원 – 지도로 만나는 우리 고장", sessions: [{n: "12차시 - 우리 지역의 지도를 살펴봐요", p: 39}, {n: "13차시 - 우리 고장의 중심지를 살펴봐요", p: 42}, {n: "14차시 - 국가유산과 위인들을 소개해요", p: 45}, {n: "15차시 - 관광 투어 버스 노선을 만들어요", p: 48}, {n: "16차시 - 살기 좋은 지역으로 만들어요", p: 51}, {n: "17차시 - 새로운 마을을 만들어요", p: 54}] },
+                { title: "뒷표지", sessions: [{n: "뒷표지", p: 58}] }
+            ]},
+            2: { total: 112, toc: [
+                { title: "표지", sessions: [{n: "표지", p: 1}] }, 
+                { title: "목차", sessions: [{n: "목차", p: 3}] },
+                { title: "1단원 – 다양한 정보가 담긴 지도", sessions: [{n: "1차시 – 지도가 필요한 이유를 알아봐요", p: 6}, {n: "2차시 – 방위, 기호, 범례를 알아봐요", p: 9}, {n: "3차시 – 등고선과 축척을 알아봐요", p: 12}, {n: "4차시 – 목적에 알맞은 지도를 활용해요", p: 15}] },
+                { title: "2단원 – 우리 국토의 위치와 영역", sessions: [{n: "5차시 – 세계 속 우리나라를 알아봐요", p: 19}, {n: "6차시 – 우리 국토의 영역을 알아봐요", p: 22}, {n: "7차시 – 소중한 우리 땅, 독도를 알아봐요", p: 24}, {n: "8차시 – 우리 국토를 소중히 여겨요", p: 27}] },
+                { title: "3단원 – 우리 국토의 자연환경", sessions: [{n: "9차시 – 우리나라의 산지와 산맥을 알아봐요", p: 31}, {n: "10차시 – 우리나라의 평야와 하천을 알아봐요", p: 34}, {n: "11차시 – 우리나라의 해안선을 탐험해요", p: 37}, {n: "12차시 – 우리나라의 계절별 기후 특징을 알아봐요", p: 40}, {n: "13차시 – 우리나라의 계졀별 강수량을 알아봐요", p: 42}, {n: "14차시 – 안전한 국토를 설계해요", p: 45}] },
+                { title: "4단원 – 우리 국토의 인문환경", sessions: [{n: "15차시 – 우리나라의 인구 분포를 알아봐요", p: 49}, {n: "16차시 – 우리나라의 주요 도시를 알아봐요", p: 52}, {n: "17차시 – 우리나라의 주요 교통망을 알아봐요", p: 55}, {n: "18차시 – 인구 분포 불균형 문제점을 탐구해요", p: 58}, {n: "19차시 – 모두를 위한 지역 균형 발전을 알아봐요", p: 61}] },
+                { title: "5단원 – 대한민국의 국가 기관", sessions: [{n: "20차시 – 국회는 어떤 일을 할까요", p: 65}, {n: "21차시 – 행정부는 어떤 일을 할까요", p: 68}, {n: "22차시 – 법원은 어떤 일을 할까요", p: 71}, {n: "23차시 – 삼권 분립의 뜻을 알아봐요", p: 74}] },
+                { title: "6단원 – 지도와 함께하는 우리나라 역사 탐험", sessions: [{n: "24차시 – 우리나라의 역사를 탐구해요(1)", p: 78}, {n: "25차시 – 우리나라의 역사를 탐구해요(2)", p: 81}, {n: "26차시 – 우리나라의 역사를 탐구해요(3)", p: 84}, {n: "27차시 – 우리나라의 역사를 탐구해요(4)", p: 87}, {n: "28차시 – 우리나라의 역사를 탐구해요(5)", p: 90}, {n: "29차시 – 우리나라의 국가유산을 탐구해요", p: 93}] },
+                { title: "7단원 – 국토 균형 발전과 미래의 대한민국", sessions: [{n: "30차시 – 국립공원 생태 지도를 그려요", p: 97}, {n: "31차시 – 한반도 평화와 남북 교류 비전을 그려요", p: 100}, {n: "32차시 – 미래 산업을 육성할 신도시를 개발해요", p: 103}, {n: "33차시 – 친환경 에너지 지도를 만들어요", p: 106}, {n: "34차시 – 내가 꿈꾸는 우리나라를 그려요", p: 109}] },
+                { title: "뒷표지", sessions: [{n: "뒷표지", p: 112}] }
+            ]},
+            3: { total: 60, toc: [
+                { title: "표지", sessions: [{n: "표지", p: 1}] }, 
+                { title: "목차", sessions: [{n: "목차", p: 3}] },
+                { title: "1단원 – 지구, 대륙 그리고 국가들", sessions: [{n: "1차시 – 다양한 공간 자료를 알아봐요", p: 5}, {n: "2차시 – 위도와 경도를 사용해요", p: 8}, {n: "3차시 – 세계의 대륙과 대양을 알아봐요", p: 11}, {n: "4차시 – 세계 여러 나라들을 알아봐요", p: 14}] },
+                { title: "2단원 – 세계의 자연환경과 다채로운 문화", sessions: [{n: "5차시 – 세계의 다양한 기후를 알아봐요", p: 18}, {n: "6차시 – 사람들의 생활 방식을 알아봐요(1)", p: 21}, {n: "7차시 – 사람들의 생활 방식을 알아봐요(2)", p: 24}, {n: "8차시 – 세계의 다양한 문화를 살펴볼까요", p: 27}] },
+                { title: "3단원 – 지구촌 사회의 협력과 갈등", sessions: [{n: "9차시 – 세계 각국의 국경선을 알아봐요", p: 31}, {n: "10차시 – 국경을 넘어 세계를 탐험해요", p: 34}, {n: "11차시 – 우리와 교류하는 나라들을 알아봐요", p: 37}, {n: "12차시 – 인구 집중과 환경 오염을 알아봐요", p: 40}, {n: "13차시 – 평화와 협력으로 지구촌 갈등을 해결해요", p: 43}] },
+                { title: "4단원 - [프로젝트] 지구촌의 문제 해결하기", sessions: [{n: "14차시 – 살고 싶은 기후와 도시를 찾아봐요", p: 47}, {n: "15차시 – 재해로부터 안전한 도시를 찾아봐요", p: 50}, {n: "16차시 – 지구촌 식량 위기 지도를 만들어요", p: 53}, {n: "17차시 – 지구촌 감염병 방어선을 설계해요", p: 56}] },
+                { title: "뒷표지", sessions: [{n: "뒷표지", p: 60}] }
+            ]}
+        };
+
+        // 1. IndexedDB 설정 (용량 무제한, 안전한 저장)
+        const dbName = "MapEbookDB_v2";
+        let db;
+        function initDB() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open(dbName, 1);
+                req.onupgradeneeded = e => {
+                    let database = e.target.result;
+                    if(!database.objectStoreNames.contains('drawings')) database.createObjectStore('drawings');
+                };
+                req.onsuccess = e => { db = e.target.result; resolve(); };
+            });
+        }
+        function saveToDB(key, data) {
+            if(!db) return;
+            db.transaction('drawings', 'readwrite').objectStore('drawings').put(JSON.stringify(data), key);
+        }
+        function loadFromDB(key) {
+            return new Promise(resolve => {
+                if(!db) return resolve([]);
+                const req = db.transaction('drawings', 'readonly').objectStore('drawings').get(key);
+                req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : []);
+            });
+        }
+
+        // 2. 전역 상태 변수
+        let currentBook = 1, currentPage = 1, viewMode = 1;
+        let currentTool = 'move', penType = 'pen', currentStamp = '⭐';
+        let penSize = 3, eraserSize = 40, currentColor = '#333333';
+        let zoomLevel = 1.0;
+        
+        const canvases = [document.getElementById('canvas-left'), document.getElementById('canvas-right')];
+        const ctxs = [canvases[0].getContext('2d'), canvases[1].getContext('2d')];
+        let paths = [[], []]; // 현재 페이지 데이터
+        let historyStack = []; // 실행 취소를 위한 단일 스택
+        
+        let isDrawing = false, activeIndex = -1, currentPath = null;
+        let selectedObj = null; // 선택된 객체 (X버튼 표시 및 더블탭 수정용)
+        let lastTapTime = 0; // 더블 탭 감지용
+        
+        // 제스처 및 UI 상태
+        let pointers = {};
+        let initialPinchDist = 0, initialZoom = 1.0;
+        let panStart = {x:0, y:0}, panStartOffset = {x:0, y:0}, currentPan = {x:0, y:0};
+        let touchStartX = 0;
+        let layers = { drawings: true, objects: true };
+        let metaData = JSON.parse(localStorage.getItem('mapEbookMeta')) || { bookmarks: {}, completed: {} };
+        const textInput = document.getElementById('text-input');
+
+        // 가로/세로 인식
+        function checkOrientation() {
+            viewMode = window.innerWidth > window.innerHeight ? 2 : 1;
+            if(document.getElementById('workspace').style.display === 'flex') loadPages(currentPage);
+        }
+        window.addEventListener('resize', checkOrientation);
+
+        // 앱 시작 및 로비
+        async function initApp() { await initDB(); }
+        initApp();
+
+        function loadRecent() {
+            let b = localStorage.getItem('recentBook');
+            let p = localStorage.getItem('recentPage');
+            if(b && p) startBook(parseInt(b), parseInt(p));
+            else showToast("최근 학습 기록이 없습니다.");
+        }
+
+        function startBook(bookNum, startPage) {
+            currentBook = bookNum; checkOrientation();
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('workspace').style.display = 'flex';
+            buildSidebar(); resetZoom(); loadPages(startPage); setTool('move');
+        }
+
+        function goLobby() {
+            saveAllData(); document.getElementById('workspace').style.display = 'none';
+            document.getElementById('lobby-screen').style.display = 'flex';
+        }
+
+        // 슬라이드 메뉴 및 메타데이터(북마크/완료)
+        function toggleMenu(show) {
+            const menu = document.getElementById('slide-menu');
+            const overlay = document.getElementById('menu-overlay');
+            if(show) { buildSidebar(); menu.classList.add('open'); overlay.style.display = 'block'; } 
+            else { menu.classList.remove('open'); overlay.style.display = 'none'; }
+        }
+
+        function saveMeta() { localStorage.setItem('mapEbookMeta', JSON.stringify(metaData)); }
+        
+        function toggleBookmark() {
+            let key = `${currentBook}_${currentPage}`;
+            if(metaData.bookmarks[key]) delete metaData.bookmarks[key];
+            else metaData.bookmarks[key] = true;
+            saveMeta(); updateHeaderMeta(); showToast(metaData.bookmarks[key] ? "북마크 추가됨" : "북마크 해제됨");
+        }
+
+        function toggleComplete() {
+            let key = `${currentBook}_${currentPage}`;
+            if(metaData.completed[key]) delete metaData.completed[key];
+            else metaData.completed[key] = true;
+            saveMeta(); updateHeaderMeta(); showToast(metaData.completed[key] ? "학습 완료!" : "완료 취소");
+        }
+
+        function updateHeaderMeta() {
+            let key = `${currentBook}_${currentPage}`;
+            const bmBtn = document.getElementById('btn-bookmark');
+            const cpBtn = document.getElementById('btn-complete');
+            if(metaData.bookmarks[key]) bmBtn.classList.add('active-yellow'); else bmBtn.classList.remove('active-yellow');
+            if(metaData.completed[key]) cpBtn.classList.add('active-green'); else cpBtn.classList.remove('active-green');
+        }
+
+        function buildSidebar() {
+            const sb = document.getElementById('sidebar-content'); sb.innerHTML = '';
+            BOOK_DATA[currentBook].toc.forEach(unit => {
+                if(unit.title === "표지" || unit.title === "목차" || unit.title === "뒷표지") {
+                    sb.innerHTML += `<div class="toc-header" onclick="goToPage(${unit.sessions[0].p})">${unit.title}</div>`;
+                } else {
+                    sb.innerHTML += `<div class="unit-title">${unit.title}</div>`;
+                    unit.sessions.forEach(sess => { 
+                        let key = `${currentBook}_${sess.p}`;
+                        let badges = "";
+                        if(metaData.bookmarks[key]) badges += `<span class="badge bm">⭐</span> `;
+                        if(metaData.completed[key]) badges += `<span class="badge cp">✅</span>`;
+                        sb.innerHTML += `<div class="session-item" onclick="goToPage(${sess.p})">
+                            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sess.n}</span>
+                            <div style="flex-shrink:0;">${badges}</div>
+                        </div>`; 
+                    });
+                }
+            });
+        }
+
+        function goToPage(pNum) {
+            toggleMenu(false);
+            if(viewMode === 2 && pNum % 2 === 0) pNum -= 1;
+            loadPages(pNum);
+        }
+
+        async function loadPages(pNum) {
+            commitTextInput(); selectedObj = null; historyStack = [];
+            currentPage = pNum;
+            const max = BOOK_DATA[currentBook].total;
+            
+            document.getElementById('page-left-wrap').style.display = 'block';
+            document.getElementById('page-right-wrap').style.display = (viewMode === 2 && currentPage < max) ? 'block' : 'none';
+            document.getElementById('page-indicator').innerText = viewMode === 1 ? `${currentPage} / ${max}` : `${currentPage}-${currentPage+1} / ${max}`;
+            
+            // 차시명 업데이트
+            let title = "학습 중";
+            BOOK_DATA[currentBook].toc.forEach(unit => { unit.sessions.forEach(s => { if(s.p <= currentPage) title = s.n; }); });
+            document.getElementById('current-chapter-text').innerText = title;
+            updateHeaderMeta();
+
+            // IndexedDB에서 병렬 로드
+            paths[0] = await loadFromDB(`${currentBook}_${currentPage}`);
+            if(viewMode === 2 && currentPage + 1 <= max) {
+                paths[1] = await loadFromDB(`${currentBook}_${currentPage+1}`);
+            }
+            
+            setupPage(0, currentPage);
+            if(viewMode === 2 && currentPage + 1 <= max) setupPage(1, currentPage + 1);
+
+            localStorage.setItem('recentBook', currentBook); localStorage.setItem('recentPage', currentPage);
+            resetZoom();
+        }
+
+        function setupPage(idx, pNum) {
+            const img = document.getElementById(idx === 0 ? 'bg-img-left' : 'bg-img-right');
+            img.src = `https://raw.githubusercontent.com/kimteacher1/map-ebook${currentBook}/main/${pNum}.png`;
+            img.onload = () => {
+                canvases[idx].width = img.clientWidth; canvases[idx].height = img.clientHeight;
+                ctxs[idx].lineCap = 'round'; ctxs[idx].lineJoin = 'round';
+                redrawCanvas(idx);
+            };
+        }
+
+        // 툴바 및 색상
+        function setTool(tool, pType = 'pen') {
+            commitTextInput(); currentTool = tool; selectedObj = null;
+            if(tool === 'pen') { penType = pType; penSize = pType==='highlighter'? 15 : 3; }
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('stamp-popup').classList.remove('show');
+            let btnId = `btn-${tool}`; if(tool === 'pen' && pType === 'highlighter') btnId = 'btn-highlighter';
+            const btn = document.getElementById(btnId); if(btn) btn.classList.add('active');
+            redrawCanvas(0); redrawCanvas(1);
+        }
+
+        function changeColor(e) { 
+            currentColor = e.target.value; 
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+            if(textInput.style.display === 'block') textInput.style.color = currentColor; 
+        }
+        function selectPaletteColor(color, el) { 
+            currentColor = color; document.getElementById('main-color').value = color;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected')); el.classList.add('selected');
+            if(textInput.style.display === 'block') textInput.style.color = currentColor; 
+        }
+
+        function togglePopup(id) { document.getElementById(id).classList.toggle('show'); setTool('stamp'); }
+        function selectStamp(stamp) { currentStamp = stamp; document.getElementById('stamp-popup').classList.remove('show'); setTool('stamp'); showToast(`'${stamp}' 도장 선택됨`); }
+        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(()=> t.style.opacity = 0, 1500); }
+
+        // 레이어 토글
+        function toggleLayerMenu() { document.getElementById('layer-menu').classList.toggle('show'); }
+        function toggleLayer(type, btn) {
+            layers[type] = !layers[type];
+            if(layers[type]) { btn.classList.add('on'); btn.innerText = "ON"; }
+            else { btn.classList.remove('on'); btn.innerText = "OFF"; }
+            redrawCanvas(0); redrawCanvas(1);
+        }
+
+        // 툴바 드래그 로직
+        const toolbar = document.getElementById('floating-toolbar');
+        const dragHandle = document.getElementById('toolbar-drag');
+        let isDraggingToolbar = false, tbStart = {x:0, y:0}, tbPos = {x:0, y:0};
+        
+        dragHandle.addEventListener('pointerdown', e => {
+            isDraggingToolbar = true;
+            let rect = toolbar.getBoundingClientRect();
+            tbStart = { x: e.clientX, y: e.clientY };
+            // transform 제거하고 절대 위치로 고정
+            toolbar.style.transform = 'none';
+            toolbar.style.left = rect.left + 'px';
+            toolbar.style.top = rect.top + 'px';
+            toolbar.style.bottom = 'auto';
+            e.preventDefault();
+        });
+        window.addEventListener('pointermove', e => {
+            if(!isDraggingToolbar) return;
+            let dx = e.clientX - tbStart.x;
+            let dy = e.clientY - tbStart.y;
+            let rect = toolbar.getBoundingClientRect();
+            toolbar.style.left = (rect.left + dx) + 'px';
+            toolbar.style.top = (rect.top + dy) + 'px';
+            tbStart = { x: e.clientX, y: e.clientY };
+        });
+        window.addEventListener('pointerup', () => isDraggingToolbar = false);
+
+        // Pointer Event (팜 리젝션 + 선택 로직 + 스트로크 압축)
+        canvases.forEach((cvs, idx) => {
+            cvs.addEventListener('pointerdown', e => onPointerDown(e, idx));
+            cvs.addEventListener('pointermove', e => onPointerMove(e, idx));
+            cvs.addEventListener('pointerup', e => onPointerUp(e, idx));
+            cvs.addEventListener('pointercancel', e => onPointerUp(e, idx));
+            cvs.addEventListener('pointerleave', e => onPointerUp(e, idx));
+        });
+
+        function getPos(e, cvs) {
+            const rect = cvs.getBoundingClientRect();
+            return { x: (e.clientX - rect.left) * (cvs.width / rect.width), y: (e.clientY - rect.top) * (cvs.height / rect.height) };
+        }
+
+        function pushHistory(idx, oldPaths) {
+            historyStack.push({ idx: idx, snapshot: JSON.parse(JSON.stringify(oldPaths)) });
+            if(historyStack.length > 30) historyStack.shift(); // 메모리 관리
+        }
+
+        function onPointerDown(e, idx) {
+            pointers[e.pointerId] = e; const pCount = Object.keys(pointers).length;
+            if(e.pointerType === 'touch' && currentTool === 'text') { commitTextInput(); setTool('move'); }
+            document.getElementById('layer-menu').classList.remove('show');
+            const pos = getPos(e, canvases[idx]);
+
+            if (e.pointerType === 'pen') {
+                if(currentTool === 'move' || currentTool === 'text' || currentTool === 'stamp') setTool('pen', 'pen'); 
+                activeIndex = idx; isDrawing = true; selectedObj = null;
+                pushHistory(idx, paths[idx]);
+                currentPath = { tool: currentTool, type: penType, size: (currentTool === 'eraser' ? eraserSize : penSize), color: currentColor, points: [pos] };
+                if(currentTool === 'eraser') smartErase(pos, idx);
+                return;
+            }
+
+            if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+                if (pCount === 1) {
+                    touchStartX = e.clientX;
+                    if(currentTool === 'stamp') {
+                        pushHistory(idx, paths[idx]);
+                        paths[idx].push({ tool: 'stamp', char: currentStamp, x: pos.x, y: pos.y, color: currentColor });
+                        redrawCanvas(idx); saveAllData(); setTool('move'); return;
+                    }
+                    if(currentTool === 'text') {
+                        textInput.style.display = 'block'; textInput.style.left = e.clientX + 'px'; textInput.style.top = (e.clientY - 40) + 'px';
+                        textInput.style.color = currentColor; textInput.focus();
+                        textInput.dataset.idx = idx; textInput.dataset.x = pos.x; textInput.dataset.y = pos.y;
+                        return;
+                    }
+                    
+                    // 객체 선택 및 삭제 로직
+                    let obj = findObjectAt(pos, idx);
+                    if (currentTool === 'move') {
+                        if (obj) {
+                            if (obj.type === 'x' && selectedObj && selectedObj.path === obj.path) { // X 버튼 클릭
+                                pushHistory(idx, paths[idx]);
+                                paths[idx].splice(obj.index, 1);
+                                selectedObj = null; saveAllData(); redrawCanvas(idx);
+                            } else { // 객체 클릭 (선택 또는 더블클릭)
+                                selectedObj = { idx, path: obj.path };
+                                let now = Date.now();
+                                if(now - lastTapTime < 300 && obj.path.tool === 'text') { // 더블 클릭 수정
+                                    pushHistory(idx, paths[idx]);
+                                    paths[idx].splice(obj.index, 1);
+                                    textInput.style.display = 'block'; textInput.style.left = e.clientX + 'px'; textInput.style.top = (e.clientY - 40) + 'px';
+                                    textInput.value = obj.path.char; textInput.style.color = obj.path.color;
+                                    textInput.focus(); textInput.dataset.idx = idx; textInput.dataset.x = obj.path.x; textInput.dataset.y = obj.path.y - 24;
+                                    selectedObj = null; setTool('text');
+                                }
+                                lastTapTime = now; redrawCanvas(idx);
+                            }
+                        } else {
+                            selectedObj = null; redrawCanvas(idx);
+                            if (zoomLevel > 1.0) panStart = { x: e.clientX, y: e.clientY };
+                        }
+                    }
+                } else if (pCount === 2) { // 핀치 줌 시작
+                    const pts = Object.values(pointers);
+                    initialPinchDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                    initialZoom = zoomLevel;
+                }
+            }
+        }
+
+        function onPointerMove(e, idx) {
+            if (!pointers[e.pointerId]) return;
+            pointers[e.pointerId] = e; const pCount = Object.keys(pointers).length;
+            const pos = getPos(e, canvases[idx]);
+
+            if (e.pointerType === 'pen' && isDrawing && activeIndex === idx) {
+                // 스트로크 압축 (Stroke Compression): 2px 이상 이동했을 때만 포인트 추가
+                let lastPt = currentPath.points[currentPath.points.length - 1];
+                if(Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 2) {
+                    currentPath.points.push(pos);
+                    if(currentTool === 'eraser') smartErase(pos, idx);
+                    redrawCanvas(idx);
+                }
+                return;
+            }
+
+            if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+                if (pCount === 1 && zoomLevel > 1.0 && !selectedObj && currentTool === 'move') {
+                    currentPan.x = panStartOffset.x + (e.clientX - panStart.x);
+                    currentPan.y = panStartOffset.y + (e.clientY - panStart.y);
+                    applyTransform();
+                } else if (pCount === 2) {
+                    const pts = Object.values(pointers);
+                    const currentDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                    zoomLevel = initialZoom * (currentDist / initialPinchDist);
+                    if(zoomLevel < 1.0) zoomLevel = 1.0;
+                    if(zoomLevel > 5.0) zoomLevel = 5.0; // 최대 5배 줌
+                    applyTransform();
+                }
+            }
+        }
+
+        function onPointerUp(e, idx) {
+            delete pointers[e.pointerId]; const pCount = Object.keys(pointers).length;
+            if (e.pointerType === 'pen' && isDrawing && activeIndex === idx) {
+                isDrawing = false; paths[idx].push(currentPath); saveAllData();
+            }
+            if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+                if (pCount === 0 && zoomLevel === 1.0 && !selectedObj && currentTool === 'move') {
+                    let diffX = e.clientX - touchStartX;
+                    if(Math.abs(diffX) > 100) {
+                        if(diffX < 0) changePage(1); else changePage(-1);
+                    }
+                }
+                if (pCount === 0) { panStartOffset.x = currentPan.x; panStartOffset.y = currentPan.y; }
+            }
+        }
+
+        function applyTransform() {
+            if(zoomLevel === 1.0) { currentPan = {x:0, y:0}; panStartOffset = {x:0, y:0}; }
+            document.getElementById('zoom-wrapper').style.transform = `translate(${currentPan.x}px, ${currentPan.y}px) scale(${zoomLevel})`;
+        }
+        function resetZoom() { zoomLevel = 1.0; applyTransform(); }
+        function changePage(dir) {
+            let target = currentPage + (dir * viewMode);
+            if(target < 1) target = 1; if(target > BOOK_DATA[currentBook].total) target = BOOK_DATA[currentBook].total;
+            if(target !== currentPage) loadPages(target);
+        }
+
+        // 지우개 및 렌더링
+        function smartErase(pos, idx) {
+            const radius = eraserSize / 2;
+            paths[idx] = paths[idx].filter(p => {
+                if(p.tool === 'text' || p.tool === 'stamp') {
+                    let box = getTextHitBox(ctxs[idx], p);
+                    // 객체에 지우개가 닿으면 완전히 삭제 (스마트 부분 지우개 보완)
+                    if(pos.x+radius >= box.x && pos.x-radius <= box.x+box.w && pos.y+radius >= box.y && pos.y-radius <= box.y+box.h) return false;
+                }
+                return true;
+            });
+        }
+
+        function getTextHitBox(ctx, p) {
+            ctx.font = "bold 24px NanumSquare"; if(p.tool === 'stamp' && p.char.length <= 2) ctx.font = "40px NanumSquare"; 
+            const w = ctx.measureText(p.char).width; const h = 30; 
+            const x = p.tool === 'stamp' ? p.x - 20 : p.x; const y = p.tool === 'stamp' ? p.y - 20 : p.y - 24; 
+            return { x, y, w, h, xBtn: { x: x + w + 12, y: y - 5, r: 12 } };
+        }
+
+        function findObjectAt(pos, idx) {
+            if(!layers.objects) return null; // 객체 레이어 꺼져있으면 선택 불가
+            for (let i = paths[idx].length - 1; i >= 0; i--) {
+                const p = paths[idx][i];
+                if (p.tool === 'text' || p.tool === 'stamp') {
+                    const box = getTextHitBox(ctxs[idx], p);
+                    // X버튼 히트 체크 (선택된 객체일 때만)
+                    if (selectedObj && selectedObj.path === p) {
+                        const dx = pos.x - box.xBtn.x, dy = pos.y - box.xBtn.y;
+                        if (Math.sqrt(dx*dx + dy*dy) <= box.xBtn.r) return { path: p, index: i, type: 'x' };
+                    }
+                    if (pos.x >= box.x && pos.x <= box.x + box.w && pos.y >= box.y && pos.y <= box.y + box.h) return { path: p, index: i, type: 'obj' };
+                }
+            }
+            return null;
+        }
+
+        function hexToRgba(hex, alpha) {
+            let r=0, g=0, b=0;
+            if(hex.length === 4) { r=parseInt(hex[1]+hex[1],16); g=parseInt(hex[2]+hex[2],16); b=parseInt(hex[3]+hex[3],16); } 
+            else if(hex.length === 7) { r=parseInt(hex[1]+hex[2],16); g=parseInt(hex[3]+hex[4],16); b=parseInt(hex[5]+hex[6],16); }
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        function redrawCanvas(idx) {
+            const ctx = ctxs[idx]; ctx.clearRect(0, 0, canvases[idx].width, canvases[idx].height);
+            const pArr = (isDrawing && activeIndex === idx) ? [...paths[idx], currentPath] : paths[idx];
+            
+            pArr.forEach(p => {
+                // 레이어 필터링
+                if(!layers.drawings && (p.tool === 'pen' || p.tool === 'eraser')) return;
+                if(!layers.objects && (p.tool === 'text' || p.tool === 'stamp')) return;
+
+                if(p.tool === 'stamp') { 
+                    ctx.globalCompositeOperation = 'source-over'; 
+                    ctx.font = p.char.length > 2 ? "bold 16px NanumSquare" : "40px NanumSquare"; 
+                    ctx.fillStyle = (p.char.length > 2 && p.color) ? p.color : "#333";
+                    if(p.char.length <= 2) ctx.fillStyle = "#000"; 
+                    ctx.fillText(p.char, p.x-20, p.y+15); 
+                } else if(p.tool === 'text') { 
+                    ctx.globalCompositeOperation = 'source-over'; ctx.font = "bold 24px NanumSquare"; ctx.fillStyle = p.color || "#333"; ctx.fillText(p.char, p.x, p.y); 
+                } else if(p.tool === 'pen' && p.points && p.points.length > 0) { 
+                    ctx.beginPath();
+                    if(p.type === 'highlighter') { ctx.globalCompositeOperation = 'multiply'; ctx.strokeStyle = p.color ? hexToRgba(p.color, 0.4) : 'rgba(255,235,59,0.4)'; ctx.lineWidth = p.size; }
+                    else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = p.color || '#333'; ctx.lineWidth = p.size; }
+                    ctx.moveTo(p.points[0].x, p.points[0].y);
+                    for(let i=1; i<p.points.length; i++) ctx.lineTo(p.points[i].x, p.points[i].y);
+                    ctx.stroke();
+                } else if(p.tool === 'eraser' && p.points && p.points.length > 0) { 
+                    ctx.beginPath(); ctx.globalCompositeOperation = 'destination-out'; ctx.strokeStyle = '#000'; ctx.lineWidth = p.size; 
+                    ctx.moveTo(p.points[0].x, p.points[0].y);
+                    for(let i=1; i<p.points.length; i++) ctx.lineTo(p.points[i].x, p.points[i].y);
+                    ctx.stroke();
+                }
+
+                // 선택된 객체에만 X 버튼 표시
+                if(currentTool === 'move' && selectedObj && selectedObj.path === p && layers.objects) {
+                    const box = getTextHitBox(ctx, p);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#5D9CEC'; ctx.lineWidth = 2;
+                    ctx.strokeRect(box.x - 5, box.y - 5, box.w + 10, box.h + 10); ctx.setLineDash([]);
+                    
+                    ctx.beginPath(); ctx.arc(box.xBtn.x, box.xBtn.y, box.xBtn.r, 0, Math.PI*2);
+                    ctx.fillStyle = '#ff4757'; ctx.fill();
+                    ctx.fillStyle = 'white'; ctx.font = "bold 12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText("X", box.xBtn.x, box.xBtn.y + 1); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; 
+                }
+            });
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        function commitTextInput() {
+            if(textInput.style.display === 'block' && textInput.value.trim() !== "") {
+                const idx = textInput.dataset.idx; pushHistory(idx, paths[idx]);
+                paths[idx].push({ tool: 'text', char: textInput.value, x: parseFloat(textInput.dataset.x), y: parseFloat(textInput.dataset.y) + 24, color: currentColor });
+                redrawCanvas(idx); saveAllData();
+            }
+            textInput.style.display = 'none'; textInput.value = "";
+        }
+        textInput.addEventListener('keydown', e => { if(e.key === 'Enter') { commitTextInput(); setTool('move'); } });
+
+        function undo() {
+            if(historyStack.length > 0) {
+                let last = historyStack.pop();
+                paths[last.idx] = last.snapshot; redrawCanvas(last.idx); saveAllData(); showToast("실행 취소");
+            }
+        }
+
+        function saveAllData() {
+            saveToDB(`${currentBook}_${currentPage}`, paths[0]);
+            if(viewMode === 2 && currentPage < BOOK_DATA[currentBook].total) saveToDB(`${currentBook}_${currentPage+1}`, paths[1]);
+        }
+
+        // 저장 및 인쇄 (용량 최적화 toBlob & 기본 인쇄 활용 PDF)
+        function saveAsImage() {
+            commitTextInput(); showToast("이미지 저장 중...");
+            exportCanvasBlob(0, currentPage);
+            if(viewMode === 2 && currentPage < BOOK_DATA[currentBook].total) setTimeout(() => exportCanvasBlob(1, currentPage + 1), 500); 
+        }
+
+        function exportCanvasBlob(idx, pageNum) {
+            let bgImg = document.getElementById(idx === 0 ? 'bg-img-left' : 'bg-img-right');
+            let drawCvs = canvases[idx];
+            let offCanvas = document.createElement('canvas');
+            offCanvas.width = bgImg.clientWidth; offCanvas.height = bgImg.clientHeight;
+            let oCtx = offCanvas.getContext('2d');
+            oCtx.drawImage(bgImg, 0, 0, offCanvas.width, offCanvas.height); oCtx.drawImage(drawCvs, 0, 0);
+            
+            offCanvas.toBlob(blob => {
+                let link = document.createElement('a');
+                link.download = `${currentBook}권_${pageNum}쪽.png`;
+                link.href = URL.createObjectURL(blob); link.click();
+            }, 'image/png');
+        }
+
+        function printAsPDF() {
+            commitTextInput();
+            resetZoom();
+            setTimeout(() => { window.print(); }, 300);
+        }
+    </script>
+</body>
+</html>
