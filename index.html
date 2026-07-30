@@ -68,14 +68,22 @@
         .left-arrow { left: 20px; }
         .right-arrow { right: 20px; }
 
-        /* 줌 컨트롤러 (하이브리드) */
+        /* 줌 컨트롤러 */
         #zoom-ui { position: absolute; left: 20px; bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); z-index: 500; border: 1px solid #eee; backdrop-filter: blur(5px); }
         .zoom-btn { width: 40px; height: 40px; border: none; border-radius: 10px; background: white; font-size: 20px; font-weight: bold; color: #555; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; }
         .zoom-btn:active { transform: scale(0.9); background: #f1f3f5; }
         .zoom-text { font-size: 14px; font-weight: 800; color: #5D9CEC; padding: 4px 0; }
 
-        /* 5. 플로팅 툴바 */
-        #floating-toolbar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #eee; }
+        /* 5. 플로팅 툴바 & 최소화 기능 추가 */
+        #floating-toolbar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #eee; }
+        
+        .toolbar-full { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+        .toolbar-mini { display: none; width: 50px; height: 50px; justify-content: center; align-items: center; font-size: 24px; cursor: grab; padding: 5px; }
+        
+        #floating-toolbar.minimized .toolbar-full { display: none; }
+        #floating-toolbar.minimized .toolbar-mini { display: flex; }
+        #floating-toolbar.minimized { border-radius: 50%; padding: 0; }
+
         .drag-handle { display: flex; flex-direction: column; gap: 3px; padding: 10px 5px; cursor: grab; opacity: 0.4; }
         .drag-handle span { display: block; width: 4px; height: 4px; background: #333; border-radius: 50%; }
         
@@ -188,26 +196,31 @@
             </div>
         </div>
 
-        <!-- 플로팅 툴바 -->
+        <!-- 플로팅 툴바 (최소화 기능 추가) -->
         <div id="floating-toolbar">
-            <div class="drag-handle" id="toolbar-drag"><span></span><span></span><span></span></div>
-            <button class="tool-btn active" id="btn-move" onclick="setTool('move')">✋</button>
-            <div class="divider"></div>
-            <button class="tool-btn" id="btn-pen" onclick="setTool('pen', 'pen')">✏️</button>
-            <button class="tool-btn" id="btn-highlighter" onclick="setTool('pen', 'highlighter')">🖍️</button>
-            <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">🧽</button>
-            <div class="color-group">
-                <div class="color-dot selected" style="background:#333333" onclick="selectPaletteColor('#333333', this)"></div>
-                <div class="color-dot" style="background:#ff4757" onclick="selectPaletteColor('#ff4757', this)"></div>
-                <div class="color-dot" style="background:#2ed573" onclick="selectPaletteColor('#2ed573', this)"></div>
-                <div class="color-dot" style="background:#1e90ff" onclick="selectPaletteColor('#1e90ff', this)"></div>
-                <div class="color-picker-wrap"><input type="color" id="main-color" value="#333333" onchange="changeColor(event)"></div>
+            <div class="toolbar-full">
+                <div class="drag-handle" id="toolbar-drag"><span></span><span></span><span></span></div>
+                <button class="tool-btn active" id="btn-move" onclick="setTool('move')">✋</button>
+                <div class="divider"></div>
+                <button class="tool-btn" id="btn-pen" onclick="setTool('pen', 'pen')">✏️</button>
+                <button class="tool-btn" id="btn-highlighter" onclick="setTool('pen', 'highlighter')">🖍️</button>
+                <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">🧽</button>
+                <div class="color-group">
+                    <div class="color-dot selected" style="background:#333333" onclick="selectPaletteColor('#333333', this)"></div>
+                    <div class="color-dot" style="background:#ff4757" onclick="selectPaletteColor('#ff4757', this)"></div>
+                    <div class="color-dot" style="background:#2ed573" onclick="selectPaletteColor('#2ed573', this)"></div>
+                    <div class="color-dot" style="background:#1e90ff" onclick="selectPaletteColor('#1e90ff', this)"></div>
+                    <div class="color-picker-wrap"><input type="color" id="main-color" value="#333333" onchange="changeColor(event)"></div>
+                </div>
+                <div class="divider"></div>
+                <button class="tool-btn" id="btn-text" onclick="setTool('text')">📝</button>
+                <button class="tool-btn" id="btn-stamp" onclick="togglePopup('stamp-popup')">⭐</button>
+                <div class="divider"></div>
+                <button class="tool-btn" onclick="undo()">↩</button>
+                <div class="divider"></div>
+                <button class="tool-btn" onclick="toggleToolbar()" title="도구창 접기">🔽</button>
             </div>
-            <div class="divider"></div>
-            <button class="tool-btn" id="btn-text" onclick="setTool('text')">📝</button>
-            <button class="tool-btn" id="btn-stamp" onclick="togglePopup('stamp-popup')">⭐</button>
-            <div class="divider"></div>
-            <button class="tool-btn" onclick="undo()">↩</button>
+            <div class="toolbar-mini" id="toolbar-mini-drag" onclick="toggleToolbar()" title="도구창 열기">✏️</div>
         </div>
 
         <!-- 스탬프 팝업 -->
@@ -336,7 +349,7 @@
         let currentTool = 'move', penType = 'pen', currentStamp = '⭐';
         let penSize = 3, eraserSize = 40, currentColor = '#333333';
         
-        /* 줌 및 패닝 제어 변수 */
+        /* 줌 및 패닝 제어 변수 (최소 50%까지 해제) */
         let zoomLevel = 1.0;
         let pointers = {}, initialPinchDist = 0, initialZoom = 1.0;
         let panStart = {x:0, y:0}, panStartOffset = {x:0, y:0}, currentPan = {x:0, y:0}, touchStartX = 0;
@@ -411,7 +424,7 @@
 
         async function loadPages(pNum) {
             commitTextInput(); selectedObj = null; historyStack = []; currentPage = pNum;
-            resetZoom(); // 페이지 넘기면 무조건 1:1 원래 크기로 리셋
+            resetZoom(); // 페이지 넘기면 무조건 1:1 리셋
             
             const max = BOOK_DATA[currentBook].total;
             document.getElementById('page-left-wrap').style.display = 'block';
@@ -462,12 +475,45 @@
         function toggleLayerMenu() { document.getElementById('layer-menu').classList.toggle('show'); }
         function toggleLayer(type, btn) { layers[type] = !layers[type]; if(layers[type]) { btn.classList.add('on'); btn.innerText = "ON"; } else { btn.classList.remove('on'); btn.innerText = "OFF"; } redrawCanvas(0); redrawCanvas(1); }
 
-        const toolbar = document.getElementById('floating-toolbar'), dragHandle = document.getElementById('toolbar-drag');
-        let isDraggingToolbar = false, tbStart = {x:0, y:0};
-        dragHandle.addEventListener('pointerdown', e => { isDraggingToolbar = true; let rect = toolbar.getBoundingClientRect(); tbStart = { x: e.clientX, y: e.clientY }; toolbar.style.transform = 'none'; toolbar.style.left = rect.left + 'px'; toolbar.style.top = rect.top + 'px'; toolbar.style.bottom = 'auto'; e.preventDefault(); });
-        window.addEventListener('pointermove', e => { if(!isDraggingToolbar) return; let dx = e.clientX - tbStart.x, dy = e.clientY - tbStart.y, rect = toolbar.getBoundingClientRect(); toolbar.style.left = (rect.left + dx) + 'px'; toolbar.style.top = (rect.top + dy) + 'px'; tbStart = { x: e.clientX, y: e.clientY }; });
-        window.addEventListener('pointerup', () => isDraggingToolbar = false);
+        /* --- 플로팅 툴바 최소화/드래그 로직 개선 --- */
+        const toolbar = document.getElementById('floating-toolbar');
+        let isDraggingToolbar = false, tbStart = {x:0, y:0}, isToolbarMoved = false;
 
+        function initToolbarDrag(handleId) {
+            const handle = document.getElementById(handleId);
+            if(!handle) return;
+            handle.addEventListener('pointerdown', e => { 
+                isDraggingToolbar = true; isToolbarMoved = false;
+                let rect = toolbar.getBoundingClientRect(); 
+                tbStart = { x: e.clientX, y: e.clientY }; 
+                toolbar.style.transform = 'none'; 
+                toolbar.style.left = rect.left + 'px'; 
+                toolbar.style.top = rect.top + 'px'; 
+                toolbar.style.bottom = 'auto'; 
+                e.preventDefault(); 
+            });
+        }
+        initToolbarDrag('toolbar-drag');
+        initToolbarDrag('toolbar-mini-drag');
+
+        window.addEventListener('pointermove', e => { 
+            if(!isDraggingToolbar) return; 
+            let dx = e.clientX - tbStart.x, dy = e.clientY - tbStart.y; 
+            if(Math.hypot(dx, dy) > 5) isToolbarMoved = true; // 5px 이상 이동 시 드래그로 판정
+            let rect = toolbar.getBoundingClientRect(); 
+            toolbar.style.left = (rect.left + dx) + 'px'; 
+            toolbar.style.top = (rect.top + dy) + 'px'; 
+            tbStart = { x: e.clientX, y: e.clientY }; 
+        });
+        window.addEventListener('pointerup', () => { setTimeout(() => isDraggingToolbar = false, 50); });
+
+        function toggleToolbar() {
+            if(isToolbarMoved) return; // 드래그 동작이 끝난 직후라면 클릭 무시
+            toolbar.classList.toggle('minimized');
+            document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show')); 
+        }
+
+        /* --- 캔버스 포인터 이벤트 제어 --- */
         canvases.forEach((cvs, idx) => {
             cvs.addEventListener('pointerdown', e => onPointerDown(e, idx)); cvs.addEventListener('pointermove', e => onPointerMove(e, idx));
             cvs.addEventListener('pointerup', e => onPointerUp(e, idx)); cvs.addEventListener('pointercancel', e => onPointerUp(e, idx)); cvs.addEventListener('pointerleave', e => onPointerUp(e, idx));
@@ -482,11 +528,9 @@
             document.getElementById('layer-menu').classList.remove('show');
             const pos = getPos(e, canvases[idx]);
 
-            // 두 손가락 터치 시 펜 그리기 즉시 취소 (제스처 꼬임 방지)
             if(pCount >= 2 && isDrawing) { isDrawing = false; }
             if (pCount === 2) { const pts = Object.values(pointers); initialPinchDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY); initialZoom = zoomLevel; return; }
 
-            // 필기 조건 완화
             if (e.pointerType === 'pen' || ((currentTool === 'pen' || currentTool === 'eraser') && pCount === 1)) {
                 if(e.pointerType === 'pen' && currentTool !== 'pen' && currentTool !== 'eraser') setTool('pen', 'pen');
                 activeIndex = idx; isDrawing = true; selectedObj = null;
@@ -532,8 +576,9 @@
                 } 
                 else if (pCount === 2) { 
                     const pts = Object.values(pointers); const currentDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY); 
+                    // 50% ~ 500% 로 범위 확장
                     zoomLevel = initialZoom * (currentDist / initialPinchDist); 
-                    if(zoomLevel < 1.0) zoomLevel = 1.0; if(zoomLevel > 5.0) zoomLevel = 5.0; 
+                    if(zoomLevel < 0.5) zoomLevel = 0.5; if(zoomLevel > 5.0) zoomLevel = 5.0; 
                     applyTransform(); 
                 }
             }
@@ -551,22 +596,22 @@
             }
         }
 
-        /* --- 줌 및 패닝 제한 안전장치 로직 --- */
+        /* --- 줌 및 패닝 제한 로직 --- */
         function clickZoom(delta) {
             zoomLevel += delta;
-            if(zoomLevel < 1.0) zoomLevel = 1.0;
+            if(zoomLevel < 0.5) zoomLevel = 0.5; // 최소 50% 허용
             if(zoomLevel > 5.0) zoomLevel = 5.0;
             applyTransform();
         }
 
         function applyTransform() { 
             if(zoomLevel <= 1.0) { 
-                zoomLevel = 1.0; currentPan = {x:0, y:0}; panStartOffset = {x:0, y:0}; 
+                // 100% 이하로 축소될 경우 화면 중앙 앵커링을 위해 이동(패닝) 잠금
+                currentPan = {x:0, y:0}; panStartOffset = {x:0, y:0}; 
             } else {
-                // 화면 이탈 방지 한계선 (Limiter)
                 const wrapper = document.getElementById('zoom-wrapper');
                 if(wrapper) {
-                    const maxPanX = (wrapper.clientWidth * zoomLevel - window.innerWidth) / 2 + 100; // 여유 공간 100px
+                    const maxPanX = (wrapper.clientWidth * zoomLevel - window.innerWidth) / 2 + 100;
                     const maxPanY = (wrapper.clientHeight * zoomLevel - window.innerHeight) / 2 + 100;
                     if(maxPanX > 0) {
                         if(currentPan.x > maxPanX) currentPan.x = maxPanX;
