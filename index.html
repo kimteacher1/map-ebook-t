@@ -468,7 +468,7 @@
 
         function setupPage(idx, pNum) {
             const img = document.getElementById(idx === 0 ? 'bg-img-left' : 'bg-img-right');
-            img.src = `https://raw.githubusercontent.com/kimteacher1/map-ebook${currentBook}/main/${pNum}.png`;
+            img.src = `https://cdn.jsdelivr.net/gh/kimteacher1/map-ebook${currentBook}@main/${pNum}.png`;
             img.onload = () => {
                 canvases[idx].width = img.clientWidth; canvases[idx].height = img.clientHeight;
                 ctxs[idx].lineCap = 'round'; ctxs[idx].lineJoin = 'round';
