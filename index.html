@@ -6,7 +6,7 @@
     <title>e-MAP BOOK 사회 여행 (Tablet Edition Pro)</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css');
-        * { box-sizing: border-box; font-family: 'NanumSquare', sans-serif; touch-action: none; }
+        * { box-sizing: border-box; font-family: 'NanumSquare', sans-serif; }
         body { margin: 0; background: #F0F2F5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; user-select: none; -webkit-user-select: none; }
         
         /* 인쇄(PDF 저장) 시 UI 숨김 */
@@ -42,11 +42,11 @@
         .page-indicator { font-size: 15px; font-weight: 800; color: #5D9CEC; background: #eef5ff; padding: 6px 12px; border-radius: 15px; }
 
         /* 3. 슬라이드 목차 */
-        #slide-menu { position: fixed; top: 0; left: -360px; width: 360px; height: 100vh; background: white; z-index: 2000; box-shadow: 10px 0 30px rgba(0,0,0,0.2); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        #slide-menu { position: fixed; top: 0; left: -360px; width: 360px; height: 100vh; background: white; z-index: 2000; box-shadow: 10px 0 30px rgba(0,0,0,0.2); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; touch-action: pan-y; }
         #slide-menu.open { transform: translateX(360px); }
         .menu-header { padding: 15px 20px; background: #5D9CEC; color: white; font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
         .close-menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        #sidebar-content { flex: 1; overflow-y: auto; }
+        #sidebar-content { flex: 1; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
         .toc-header { font-size: 16px; font-weight: 800; color: #333; padding: 15px 20px; border-bottom: 1px solid #eee; cursor: pointer; }
         .unit-title { font-size: 15px; font-weight: 800; color: #5D9CEC; padding: 12px 20px; background: #f8f9fa; border-bottom: 1px solid #eee;}
         .session-item { padding: 12px 20px 12px 30px; border-bottom: 1px solid #eee; font-size: 15px; color: #555; cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
@@ -74,7 +74,7 @@
         .zoom-btn:active { transform: scale(0.9); background: #f1f3f5; }
         .zoom-text { font-size: 14px; font-weight: 800; color: #5D9CEC; padding: 4px 0; }
 
-        /* 5. 플로팅 툴바 & 최소화 기능 추가 */
+        /* 5. 플로팅 툴바 */
         #floating-toolbar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #eee; }
         
         .toolbar-full { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
@@ -97,6 +97,11 @@
         .color-dot.selected { border-color: #5D9CEC; transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .color-picker-wrap { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid #ccc; display: inline-block; position: relative;}
         .color-picker-wrap input[type="color"] { position: absolute; top: -10px; left: -10px; width: 50px; height: 50px; border: none; cursor: pointer;}
+        
+        .size-group { display: flex; align-items: center; gap: 2px; background: #f8f9fa; padding: 4px; border-radius: 12px; margin-left: 2px; }
+        .size-dot { border: 2px solid transparent; display: flex; justify-content: center; align-items: center; cursor: pointer; border-radius: 50%; width: 28px; height: 28px; }
+        .size-dot.selected { border-color: #5D9CEC; background: #eef5ff; }
+        .size-dot-inner { background: #333; border-radius: 50%; }
 
         /* 팝업 메뉴들 */
         .popup-menu { display: none; position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); background: white; border-radius: 16px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1100; min-width: 320px; max-height: 400px; overflow-y: auto;}
@@ -134,7 +139,8 @@
     <div id="lobby-screen">
         <div class="lobby-title">e-MAP BOOK 사회 여행</div>
         <div class="lobby-subtitle">태블릿에서 더 가볍고 똑똑하게 필기해요!</div>
-        <button class="recent-btn" onclick="loadRecent()">🚀 최근 학습 이어하기</button>
+        <!-- 최근 학습 이어하기 정보 표시 (시간 포함) -->
+        <button class="recent-btn" onclick="loadRecent()">🚀 최근 학습 이어하기 <span id="recent-info" style="font-size:16px; margin-left:8px; font-weight:normal; color:#ddd;"></span></button>
         <div class="books-wrap">
             <img class="book-cover" src="https://cdn.jsdelivr.net/gh/kimteacher1/map-ebook1@main/1.png" onclick="startBook(1, 1)">
             <img class="book-cover" src="https://cdn.jsdelivr.net/gh/kimteacher1/map-ebook2@main/1.png" onclick="startBook(2, 1)">
@@ -161,13 +167,13 @@
                 <button class="icon-btn" id="btn-complete" onclick="toggleComplete()" title="학습 완료">✅</button>
                 <button class="icon-btn" id="btn-bookmark" onclick="toggleBookmark()" title="북마크">⭐</button>
                 <div class="divider" style="height:20px; margin:0;"></div>
-                <button class="icon-btn" onclick="toggleLayerMenu()" title="레이어 설정">👀</button>
+                <button class="icon-btn" onclick="toggleLayerMenu(event)" title="레이어 설정">👀</button>
                 <button class="icon-btn" onclick="saveAsImage()" title="이미지 저장">💾</button>
-                <button class="icon-btn" onclick="printAsPDF()" title="PDF 인쇄">🖨️</button>
+                <button class="icon-btn" onclick="printAsPDF()" title="인쇄/PDF">🖨️</button>
             </div>
         </div>
 
-        <div id="layer-menu" class="layer-menu">
+        <div id="layer-menu" class="layer-menu popup-menu">
             <div class="layer-row">펜 필기 <button class="toggle-btn on" onclick="toggleLayer('drawings', this)">ON</button></div>
             <div class="layer-row">스탬프/텍스트 <button class="toggle-btn on" onclick="toggleLayer('objects', this)">ON</button></div>
         </div>
@@ -176,7 +182,6 @@
             <button class="nav-arrow left-arrow" onclick="changePage(-1)">◀</button>
             <button class="nav-arrow right-arrow" onclick="changePage(1)">▶</button>
             
-            <!-- 줌 컨트롤러 -->
             <div id="zoom-ui">
                 <button class="zoom-btn" onclick="clickZoom(0.2)">➕</button>
                 <div class="zoom-text" id="zoom-text-display">100%</div>
@@ -196,7 +201,7 @@
             </div>
         </div>
 
-        <!-- 플로팅 툴바 (최소화 기능 추가) -->
+        <!-- 플로팅 툴바 -->
         <div id="floating-toolbar">
             <div class="toolbar-full">
                 <div class="drag-handle" id="toolbar-drag"><span></span><span></span><span></span></div>
@@ -205,6 +210,7 @@
                 <button class="tool-btn" id="btn-pen" onclick="setTool('pen', 'pen')">✏️</button>
                 <button class="tool-btn" id="btn-highlighter" onclick="setTool('pen', 'highlighter')">🖍️</button>
                 <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">🧽</button>
+                
                 <div class="color-group">
                     <div class="color-dot selected" style="background:#333333" onclick="selectPaletteColor('#333333', this)"></div>
                     <div class="color-dot" style="background:#ff4757" onclick="selectPaletteColor('#ff4757', this)"></div>
@@ -212,9 +218,16 @@
                     <div class="color-dot" style="background:#1e90ff" onclick="selectPaletteColor('#1e90ff', this)"></div>
                     <div class="color-picker-wrap"><input type="color" id="main-color" value="#333333" onchange="changeColor(event)"></div>
                 </div>
+                
+                <div class="size-group">
+                    <div class="size-dot" data-size="1" onclick="setPenSize(1, this)"><div class="size-dot-inner" style="width:6px; height:6px;"></div></div>
+                    <div class="size-dot selected" data-size="3" onclick="setPenSize(3, this)"><div class="size-dot-inner" style="width:12px; height:12px;"></div></div>
+                    <div class="size-dot" data-size="6" onclick="setPenSize(6, this)"><div class="size-dot-inner" style="width:18px; height:18px;"></div></div>
+                </div>
+
                 <div class="divider"></div>
                 <button class="tool-btn" id="btn-text" onclick="setTool('text')">📝</button>
-                <button class="tool-btn" id="btn-stamp" onclick="togglePopup('stamp-popup')">⭐</button>
+                <button class="tool-btn" id="btn-stamp" onclick="togglePopup(event, 'stamp-popup')">⭐</button>
                 <div class="divider"></div>
                 <button class="tool-btn" onclick="undo()">↩</button>
                 <div class="divider"></div>
@@ -223,9 +236,11 @@
             <div class="toolbar-mini" id="toolbar-mini-drag" onclick="toggleToolbar()" title="도구창 열기">✏️</div>
         </div>
 
-        <!-- 스탬프 팝업 -->
         <div id="stamp-popup" class="popup-menu">
-            <div class="popup-title">💯 선생님 칭찬 & 피드백</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px;">
+                <div class="popup-title" style="margin:0; border:none; padding:0;">💯 선생님 칭찬 & 피드백</div>
+                <label style="font-size:12px; color:#666; font-weight:normal; cursor:pointer;"><input type="checkbox" id="stamp-keep-chk" style="margin:0 4px 0 0; vertical-align:middle;">연속 찍기</label>
+            </div>
             <div class="stamp-grid">
                 <div class="stamp-item" onclick="selectStamp('⭐')">⭐</div>
                 <div class="stamp-item" onclick="selectStamp('💯')">💯</div>
@@ -347,20 +362,33 @@
 
         let currentBook = 1, currentPage = 1, viewMode = 1;
         let currentTool = 'move', penType = 'pen', currentStamp = '⭐';
-        let penSize = 3, eraserSize = 40, currentColor = '#333333';
+        let penSize = 3, eraserSize = 30, currentColor = '#333333';
         
-        /* 줌 및 패닝 제어 변수 (최소 50%까지 해제) */
         let zoomLevel = 1.0;
         let pointers = {}, initialPinchDist = 0, initialZoom = 1.0;
         let panStart = {x:0, y:0}, panStartOffset = {x:0, y:0}, currentPan = {x:0, y:0}, touchStartX = 0;
         
         const canvases = [document.getElementById('canvas-left'), document.getElementById('canvas-right')];
         const ctxs = [canvases[0].getContext('2d'), canvases[1].getContext('2d')];
-        let paths = [[], []], historyStack = [];
+        let paths = [[], []]; 
+        
+        // ① Undo 완벽 분리 로직 (좌/우 개별 키 관리)
+        let historyStacks = {}; 
+        let globalUndo = []; 
+        
         let isDrawing = false, activeIndex = -1, currentPath = null, selectedObj = null, lastTapTime = 0;
         let layers = { drawings: true, objects: true };
         let metaData = JSON.parse(localStorage.getItem('mapEbookMeta')) || { bookmarks: {}, completed: {} };
         const textInput = document.getElementById('text-input');
+        
+        let isRedrawing = false; 
+
+        // ⑫ 팝업 닫기 이벤트 충돌 방지
+        document.addEventListener('pointerdown', (e) => {
+            if (!e.target.closest('.popup-menu') && !e.target.closest('.tool-btn') && !e.target.closest('.icon-btn')) {
+                document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show'));
+            }
+        });
 
         function checkOrientation() {
             viewMode = window.innerWidth > window.innerHeight ? 2 : 1;
@@ -368,7 +396,20 @@
         }
         window.addEventListener('resize', checkOrientation);
 
-        async function initApp() { await initDB(); } initApp();
+        function formatRecentTime(t) {
+            if(!t) return "";
+            let d = new Date(parseInt(t));
+            return ` ${d.getMonth()+1}월${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+
+        async function initApp() { 
+            await initDB(); 
+            // ⑥ 최근 학습 이력 업데이트 (시간 포함)
+            let b = localStorage.getItem('recentBook'), p = localStorage.getItem('recentPage'), t = localStorage.getItem('recentTime');
+            if(b && p) document.getElementById('recent-info').innerText = `(${b}권 ${p}쪽${formatRecentTime(t)})`;
+        } 
+        initApp();
+        
         function loadRecent() {
             let b = localStorage.getItem('recentBook'), p = localStorage.getItem('recentPage');
             if(b && p) startBook(parseInt(b), parseInt(p)); else showToast("최근 학습 기록이 없습니다.");
@@ -380,6 +421,8 @@
         }
         function goLobby() {
             saveAllData(); document.getElementById('workspace').style.display = 'none'; document.getElementById('lobby-screen').style.display = 'flex';
+            let b = localStorage.getItem('recentBook'), p = localStorage.getItem('recentPage'), t = localStorage.getItem('recentTime');
+            if(b && p) document.getElementById('recent-info').innerText = `(${b}권 ${p}쪽${formatRecentTime(t)})`;
         }
 
         function toggleMenu(show) {
@@ -423,8 +466,8 @@
         function goToPage(pNum) { toggleMenu(false); if(viewMode === 2 && pNum % 2 === 0) pNum -= 1; loadPages(pNum); }
 
         async function loadPages(pNum) {
-            commitTextInput(); selectedObj = null; historyStack = []; currentPage = pNum;
-            resetZoom(); // 페이지 넘기면 무조건 1:1 리셋
+            commitTextInput(); selectedObj = null; currentPage = pNum;
+            resetZoom();
             
             const max = BOOK_DATA[currentBook].total;
             document.getElementById('page-left-wrap').style.display = 'block';
@@ -437,27 +480,67 @@
             if(viewMode === 2 && currentPage + 1 <= max) paths[1] = await loadFromDB(`${currentBook}_${currentPage+1}`);
             
             setupPage(0, currentPage); if(viewMode === 2 && currentPage + 1 <= max) setupPage(1, currentPage + 1);
-            localStorage.setItem('recentBook', currentBook); localStorage.setItem('recentPage', currentPage); 
+            localStorage.setItem('recentBook', currentBook); 
+            localStorage.setItem('recentPage', currentPage);
+            localStorage.setItem('recentTime', Date.now()); 
         }
 
         function setupPage(idx, pNum) {
             const img = document.getElementById(idx === 0 ? 'bg-img-left' : 'bg-img-right');
+            img.dataset.retries = 0;
             img.src = `https://cdn.jsdelivr.net/gh/kimteacher1/map-ebook${currentBook}@main/${pNum}.png`;
             img.onload = () => { canvases[idx].width = img.clientWidth; canvases[idx].height = img.clientHeight; ctxs[idx].lineCap = 'round'; ctxs[idx].lineJoin = 'round'; redrawCanvas(idx); };
+            
+            // ⑦ 이미지 로딩 실패 처리 (최대 3회 무한루프 방지)
+            img.onerror = () => {
+                let r = parseInt(img.dataset.retries) || 0;
+                if(r < 3) {
+                    img.dataset.retries = r + 1;
+                    showToast(`페이지 로딩 지연... 재시도 중 (${r+1}/3)`);
+                    setTimeout(() => { img.src = `https://cdn.jsdelivr.net/gh/kimteacher1/map-ebook${currentBook}@main/${pNum}.png?retry=${Date.now()}`; }, 2000);
+                } else {
+                    showToast("이미지를 불러올 수 없습니다. 네트워크를 확인해주세요.");
+                }
+            };
         }
 
-        function togglePopup(id) {
+        // ⑫ 팝업 클릭 충돌 방지 이벤트 제어 추가
+        function togglePopup(e, id) {
+            if(e) e.stopPropagation();
             const popup = document.getElementById(id);
             const isShowing = popup.classList.contains('show');
-            setTool('stamp');
+            document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show')); 
+            if(id === 'stamp-popup') setTool('stamp');
             if (!isShowing) popup.classList.add('show');
+        }
+        
+        function toggleLayerMenu(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('layer-menu');
+            const isShowing = menu.classList.contains('show');
+            document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show')); 
+            if (!isShowing) menu.classList.add('show');
+        }
+
+        function setPenSize(size, el) {
+            penSize = size;
+            eraserSize = size * 10;
+            document.querySelectorAll('.size-dot').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
         }
 
         function setTool(tool, pType = 'pen') {
             commitTextInput(); currentTool = tool; selectedObj = null;
-            if(tool === 'pen') { penType = pType; penSize = pType==='highlighter'? 15 : 3; }
+            if(tool === 'pen') { 
+                penType = pType; 
+                if(pType === 'highlighter') penSize = 15;
+                else {
+                    let activeDot = document.querySelector('.size-dot.selected');
+                    if(activeDot) penSize = parseInt(activeDot.getAttribute('data-size'));
+                    else penSize = 3;
+                }
+            }
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show')); 
             let btnId = `btn-${tool}`; if(tool === 'pen' && pType === 'highlighter') btnId = 'btn-highlighter';
             const btn = document.getElementById(btnId); if(btn) btn.classList.add('active');
             redrawCanvas(0); redrawCanvas(1);
@@ -472,12 +555,23 @@
         function changeColor(e) { currentColor = e.target.value; document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected')); if(textInput.style.display === 'block') textInput.style.color = currentColor; }
         function selectPaletteColor(color, el) { currentColor = color; document.getElementById('main-color').value = color; document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected')); el.classList.add('selected'); if(textInput.style.display === 'block') textInput.style.color = currentColor; }
         function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(()=> t.style.opacity = 0, 1500); }
-        function toggleLayerMenu() { document.getElementById('layer-menu').classList.toggle('show'); }
         function toggleLayer(type, btn) { layers[type] = !layers[type]; if(layers[type]) { btn.classList.add('on'); btn.innerText = "ON"; } else { btn.classList.remove('on'); btn.innerText = "OFF"; } redrawCanvas(0); redrawCanvas(1); }
 
-        /* --- 플로팅 툴바 최소화/드래그 로직 개선 --- */
+        /* --- 툴바 최소화 및 드래그 위치 보정 --- */
         const toolbar = document.getElementById('floating-toolbar');
         let isDraggingToolbar = false, tbStart = {x:0, y:0}, isToolbarMoved = false;
+
+        // ⑧ 툴바 위치 로드 시 화면 이탈 방지 로직 추가
+        let savedX = parseFloat(localStorage.getItem('toolbarX'));
+        let savedY = parseFloat(localStorage.getItem('toolbarY'));
+        if(!isNaN(savedX) && !isNaN(savedY)) {
+            let mw = window.innerWidth, mh = window.innerHeight;
+            if(savedX < 0) savedX = 20; if(savedX > mw - 60) savedX = mw - 60;
+            if(savedY < 0) savedY = 20; if(savedY > mh - 60) savedY = mh - 60;
+            toolbar.style.left = savedX + 'px';
+            toolbar.style.top = savedY + 'px';
+            toolbar.style.transform = 'none';
+        }
 
         function initToolbarDrag(handleId) {
             const handle = document.getElementById(handleId);
@@ -499,28 +593,47 @@
         window.addEventListener('pointermove', e => { 
             if(!isDraggingToolbar) return; 
             let dx = e.clientX - tbStart.x, dy = e.clientY - tbStart.y; 
-            if(Math.hypot(dx, dy) > 5) isToolbarMoved = true; // 5px 이상 이동 시 드래그로 판정
+            if(Math.hypot(dx, dy) > 5) isToolbarMoved = true;
             let rect = toolbar.getBoundingClientRect(); 
             toolbar.style.left = (rect.left + dx) + 'px'; 
             toolbar.style.top = (rect.top + dy) + 'px'; 
             tbStart = { x: e.clientX, y: e.clientY }; 
         });
-        window.addEventListener('pointerup', () => { setTimeout(() => isDraggingToolbar = false, 50); });
+        window.addEventListener('pointerup', () => { 
+            if(isDraggingToolbar) {
+                setTimeout(() => isDraggingToolbar = false, 50); 
+                let rect = toolbar.getBoundingClientRect();
+                localStorage.setItem('toolbarX', rect.left);
+                localStorage.setItem('toolbarY', rect.top);
+            }
+        });
 
         function toggleToolbar() {
-            if(isToolbarMoved) return; // 드래그 동작이 끝난 직후라면 클릭 무시
+            if(isToolbarMoved) return; 
             toolbar.classList.toggle('minimized');
             document.querySelectorAll('.popup-menu').forEach(p => p.classList.remove('show')); 
         }
 
         /* --- 캔버스 포인터 이벤트 제어 --- */
         canvases.forEach((cvs, idx) => {
-            cvs.addEventListener('pointerdown', e => onPointerDown(e, idx)); cvs.addEventListener('pointermove', e => onPointerMove(e, idx));
-            cvs.addEventListener('pointerup', e => onPointerUp(e, idx)); cvs.addEventListener('pointercancel', e => onPointerUp(e, idx)); cvs.addEventListener('pointerleave', e => onPointerUp(e, idx));
+            cvs.addEventListener('pointerdown', e => { e.preventDefault(); onPointerDown(e, idx); }); 
+            cvs.addEventListener('pointermove', e => onPointerMove(e, idx));
+            cvs.addEventListener('pointerup', e => onPointerUp(e, idx)); 
+            cvs.addEventListener('pointercancel', e => onPointerUp(e, idx)); 
+            cvs.addEventListener('pointerleave', e => onPointerUp(e, idx));
         });
 
         function getPos(e, cvs) { const rect = cvs.getBoundingClientRect(); return { x: (e.clientX - rect.left) * (cvs.width / rect.width), y: (e.clientY - rect.top) * (cvs.height / rect.height) }; }
-        function pushHistory(idx, oldPaths) { historyStack.push({ idx: idx, snapshot: JSON.parse(JSON.stringify(oldPaths)) }); if(historyStack.length > 30) historyStack.shift(); }
+        
+        // ① Undo 완벽 분리를 위한 배열 푸시 로직 수정
+        function pushHistory(idx, oldPaths) { 
+            let pNum = idx === 0 ? currentPage : currentPage + 1;
+            let key = `${currentBook}_${pNum}_${idx}`;
+            if(!historyStacks[key]) historyStacks[key] = [];
+            historyStacks[key].push(JSON.parse(JSON.stringify(oldPaths))); 
+            globalUndo.push({ key: key, pNum: pNum, idx: idx });
+            if(globalUndo.length > 50) globalUndo.shift(); 
+        }
 
         function onPointerDown(e, idx) {
             pointers[e.pointerId] = e; const pCount = Object.keys(pointers).length;
@@ -542,17 +655,39 @@
 
             if ((e.pointerType === 'touch' || e.pointerType === 'mouse') && pCount === 1) {
                 touchStartX = e.clientX;
-                if(currentTool === 'stamp') { pushHistory(idx, paths[idx]); paths[idx].push({ tool: 'stamp', char: currentStamp, x: pos.x, y: pos.y, color: currentColor }); redrawCanvas(idx); saveAllData(); setTool('move'); return; }
+                
+                // ④ 스탬프 1회용/연속 유지 옵션 제어
+                if(currentTool === 'stamp') { 
+                    pushHistory(idx, paths[idx]); 
+                    paths[idx].push({ tool: 'stamp', char: currentStamp, x: pos.x, y: pos.y, color: currentColor }); 
+                    redrawCanvas(idx); saveAllData(); 
+                    if(!document.getElementById('stamp-keep-chk').checked) {
+                        setTool('move');
+                    }
+                    return; 
+                }
+                
                 if(currentTool === 'text') { textInput.style.display = 'block'; textInput.style.left = e.clientX + 'px'; textInput.style.top = (e.clientY - 40) + 'px'; textInput.style.color = currentColor; textInput.focus(); textInput.dataset.idx = idx; textInput.dataset.x = pos.x; textInput.dataset.y = pos.y; return; }
                 
                 let obj = findObjectAt(pos, idx);
                 if (currentTool === 'move') {
                     if (obj) {
-                        if (obj.type === 'x' && selectedObj && selectedObj.path === obj.path) { pushHistory(idx, paths[idx]); paths[idx].splice(obj.index, 1); selectedObj = null; saveAllData(); redrawCanvas(idx); } 
-                        else { selectedObj = { idx, path: obj.path }; let now = Date.now();
-                            if(now - lastTapTime < 300 && obj.path.tool === 'text') { pushHistory(idx, paths[idx]); paths[idx].splice(obj.index, 1); textInput.style.display = 'block'; textInput.style.left = e.clientX + 'px'; textInput.style.top = (e.clientY - 40) + 'px'; textInput.value = obj.path.char; textInput.style.color = obj.path.color; textInput.focus(); textInput.dataset.idx = idx; textInput.dataset.x = obj.path.x; textInput.dataset.y = obj.path.y - 24; selectedObj = null; setTool('text'); }
-                            lastTapTime = now; redrawCanvas(idx); }
-                    } else { selectedObj = null; redrawCanvas(idx); if (zoomLevel > 1.0) panStart = { x: e.clientX, y: e.clientY }; }
+                        // ② 삭제 UX 롤백 (X 버튼 삭제 방식)
+                        if (obj.type === 'x' && selectedObj && selectedObj.path === obj.path) { 
+                            pushHistory(idx, paths[idx]); paths[idx].splice(obj.index, 1); selectedObj = null; saveAllData(); redrawCanvas(idx); return;
+                        } else { 
+                            selectedObj = { idx, path: obj.path, index: obj.index }; 
+                            let now = Date.now();
+                            if(now - lastTapTime < 300 && obj.path.tool === 'text') { 
+                                pushHistory(idx, paths[idx]); paths[idx].splice(obj.index, 1); 
+                                textInput.style.display = 'block'; textInput.style.left = e.clientX + 'px'; textInput.style.top = (e.clientY - 40) + 'px'; textInput.value = obj.path.char; textInput.style.color = obj.path.color; textInput.focus(); textInput.dataset.idx = idx; textInput.dataset.x = obj.path.x; textInput.dataset.y = obj.path.y - 24; selectedObj = null; setTool('text'); 
+                            }
+                            lastTapTime = now; redrawCanvas(idx); 
+                        }
+                    } else { 
+                        selectedObj = null; redrawCanvas(idx); 
+                        if (zoomLevel > 1.0) panStart = { x: e.clientX, y: e.clientY }; 
+                    }
                 }
             }
         }
@@ -564,7 +699,14 @@
 
             if (isDrawing && activeIndex === idx && pCount === 1) {
                 let lastPt = currentPath.points[currentPath.points.length - 1];
-                if(Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 2) { currentPath.points.push(pos); if(currentTool === 'eraser') smartErase(pos, idx); redrawCanvas(idx); }
+                if(Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 2) { 
+                    currentPath.points.push(pos); 
+                    if(currentTool === 'eraser') smartErase(pos, idx); 
+                    if(!isRedrawing) {
+                        isRedrawing = true;
+                        requestAnimationFrame(() => { redrawCanvas(idx); isRedrawing = false; });
+                    }
+                }
                 return;
             }
 
@@ -576,7 +718,6 @@
                 } 
                 else if (pCount === 2) { 
                     const pts = Object.values(pointers); const currentDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY); 
-                    // 50% ~ 500% 로 범위 확장
                     zoomLevel = initialZoom * (currentDist / initialPinchDist); 
                     if(zoomLevel < 0.5) zoomLevel = 0.5; if(zoomLevel > 5.0) zoomLevel = 5.0; 
                     applyTransform(); 
@@ -586,7 +727,12 @@
 
         function onPointerUp(e, idx) {
             delete pointers[e.pointerId]; const pCount = Object.keys(pointers).length;
-            if (isDrawing && activeIndex === idx) { isDrawing = false; paths[idx].push(currentPath); saveAllData(); }
+            if (isDrawing && activeIndex === idx) { 
+                isDrawing = false; 
+                paths[idx].push(currentPath); 
+                saveAllData(); 
+                redrawCanvas(idx); // ③ 마지막 프레임 강제 렌더링
+            }
             if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
                 if (pCount === 0 && zoomLevel === 1.0 && !selectedObj && currentTool === 'move') {
                     let diffX = e.clientX - touchStartX;
@@ -599,30 +745,34 @@
         /* --- 줌 및 패닝 제한 로직 --- */
         function clickZoom(delta) {
             zoomLevel += delta;
-            if(zoomLevel < 0.5) zoomLevel = 0.5; // 최소 50% 허용
+            if(zoomLevel < 0.5) zoomLevel = 0.5; 
             if(zoomLevel > 5.0) zoomLevel = 5.0;
             applyTransform();
         }
 
         function applyTransform() { 
             if(zoomLevel <= 1.0) { 
-                // 100% 이하로 축소될 경우 화면 중앙 앵커링을 위해 이동(패닝) 잠금
                 currentPan = {x:0, y:0}; panStartOffset = {x:0, y:0}; 
             } else {
-                const wrapper = document.getElementById('zoom-wrapper');
-                if(wrapper) {
-                    const maxPanX = (wrapper.clientWidth * zoomLevel - window.innerWidth) / 2 + 100;
-                    const maxPanY = (wrapper.clientHeight * zoomLevel - window.innerHeight) / 2 + 100;
-                    if(maxPanX > 0) {
-                        if(currentPan.x > maxPanX) currentPan.x = maxPanX;
-                        if(currentPan.x < -maxPanX) currentPan.x = -maxPanX;
-                    } else { currentPan.x = 0; }
-                    
-                    if(maxPanY > 0) {
-                        if(currentPan.y > maxPanY) currentPan.y = maxPanY;
-                        if(currentPan.y < -maxPanY) currentPan.y = -maxPanY;
-                    } else { currentPan.y = 0; }
+                // ⑩ 확대 시 패닝 바운더리를 Safari 호환이 완벽한 offsetWidth로 교체
+                let contentW = document.getElementById('page-left-wrap').offsetWidth;
+                if(viewMode === 2 && document.getElementById('page-right-wrap').style.display !== 'none') {
+                    contentW += document.getElementById('page-right-wrap').offsetWidth + 10;
                 }
+                let contentH = document.getElementById('page-left-wrap').offsetHeight;
+                
+                const maxPanX = Math.max(0, (contentW * zoomLevel - window.innerWidth) / 2 + 50);
+                const maxPanY = Math.max(0, (contentH * zoomLevel - window.innerHeight) / 2 + 100);
+                
+                if(maxPanX > 0) {
+                    if(currentPan.x > maxPanX) currentPan.x = maxPanX;
+                    if(currentPan.x < -maxPanX) currentPan.x = -maxPanX;
+                } else { currentPan.x = 0; }
+                
+                if(maxPanY > 0) {
+                    if(currentPan.y > maxPanY) currentPan.y = maxPanY;
+                    if(currentPan.y < -maxPanY) currentPan.y = -maxPanY;
+                } else { currentPan.y = 0; }
             }
             document.getElementById('zoom-wrapper').style.transform = `translate(${currentPan.x}px, ${currentPan.y}px) scale(${zoomLevel})`; 
             document.getElementById('zoom-text-display').innerText = Math.round(zoomLevel * 100) + '%';
@@ -632,9 +782,36 @@
         function changePage(dir) { let target = currentPage + (dir * viewMode); if(target < 1) target = 1; if(target > BOOK_DATA[currentBook].total) target = BOOK_DATA[currentBook].total; if(target !== currentPage) loadPages(target); }
 
         function smartErase(pos, idx) { const radius = eraserSize / 2; paths[idx] = paths[idx].filter(p => { if(p.tool === 'text' || p.tool === 'stamp') { let box = getTextHitBox(ctxs[idx], p); if(pos.x+radius >= box.x && pos.x-radius <= box.x+box.w && pos.y+radius >= box.y && pos.y-radius <= box.y+box.h) return false; } return true; }); }
-        function getTextHitBox(ctx, p) { ctx.font = "bold 24px NanumSquare"; if(p.tool === 'stamp' && p.char.length <= 2) ctx.font = "40px NanumSquare"; const w = ctx.measureText(p.char).width; const h = 30; const x = p.tool === 'stamp' ? p.x - 20 : p.x; const y = p.tool === 'stamp' ? p.y - 20 : p.y - 24; return { x, y, w, h, xBtn: { x: x + w + 12, y: y - 5, r: 12 } }; }
-        function findObjectAt(pos, idx) { if(!layers.objects) return null; for (let i = paths[idx].length - 1; i >= 0; i--) { const p = paths[idx][i]; if (p.tool === 'text' || p.tool === 'stamp') { const box = getTextHitBox(ctxs[idx], p); if (selectedObj && selectedObj.path === p) { const dx = pos.x - box.xBtn.x, dy = pos.y - box.xBtn.y; if (Math.sqrt(dx*dx + dy*dy) <= box.xBtn.r) return { path: p, index: i, type: 'x' }; } if (pos.x >= box.x && pos.x <= box.x + box.w && pos.y >= box.y && pos.y <= box.y + box.h) return { path: p, index: i, type: 'obj' }; } } return null; }
+        
+        // ② 빨간색 X 버튼 계산식 복구
+        function getTextHitBox(ctx, p) { 
+            ctx.font = "bold 24px NanumSquare"; 
+            if(p.tool === 'stamp' && p.char.length <= 2) ctx.font = "40px NanumSquare"; 
+            const w = ctx.measureText(p.char).width; 
+            const h = 30; 
+            const x = p.tool === 'stamp' ? p.x - 20 : p.x; 
+            const y = p.tool === 'stamp' ? p.y - 20 : p.y - 24; 
+            return { x, y, w, h, xBtn: { x: x + w + 12, y: y - 5, r: 12 } }; 
+        }
+        
+        function findObjectAt(pos, idx) { 
+            if(!layers.objects) return null; 
+            for (let i = paths[idx].length - 1; i >= 0; i--) { 
+                const p = paths[idx][i]; 
+                if (p.tool === 'text' || p.tool === 'stamp') { 
+                    const box = getTextHitBox(ctxs[idx], p); 
+                    if (selectedObj && selectedObj.path === p) { 
+                        const dx = pos.x - box.xBtn.x, dy = pos.y - box.xBtn.y; 
+                        if (Math.sqrt(dx*dx + dy*dy) <= box.xBtn.r) return { path: p, index: i, type: 'x' }; 
+                    } 
+                    if (pos.x >= box.x && pos.x <= box.x + box.w && pos.y >= box.y && pos.y <= box.y + box.h) return { path: p, index: i, type: 'obj' }; 
+                } 
+            } 
+            return null; 
+        }
+        
         function hexToRgba(hex, alpha) { let r=0, g=0, b=0; if(hex.length === 4) { r=parseInt(hex[1]+hex[1],16); g=parseInt(hex[2]+hex[2],16); b=parseInt(hex[3]+hex[3],16); } else if(hex.length === 7) { r=parseInt(hex[1]+hex[2],16); g=parseInt(hex[3]+hex[4],16); b=parseInt(hex[5]+hex[6],16); } return `rgba(${r},${g},${b},${alpha})`; }
+        
         function redrawCanvas(idx) {
             const ctx = ctxs[idx]; ctx.clearRect(0, 0, canvases[idx].width, canvases[idx].height); const pArr = (isDrawing && activeIndex === idx) ? [...paths[idx], currentPath] : paths[idx];
             pArr.forEach(p => {
@@ -643,8 +820,12 @@
                 else if(p.tool === 'text') { ctx.globalCompositeOperation = 'source-over'; ctx.font = "bold 24px NanumSquare"; ctx.fillStyle = p.color || "#333"; ctx.fillText(p.char, p.x, p.y); } 
                 else if(p.tool === 'pen' && p.points && p.points.length > 0) { ctx.beginPath(); if(p.type === 'highlighter') { ctx.globalCompositeOperation = 'multiply'; ctx.strokeStyle = p.color ? hexToRgba(p.color, 0.4) : 'rgba(255,235,59,0.4)'; ctx.lineWidth = p.size; } else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = p.color || '#333'; ctx.lineWidth = p.size; } ctx.moveTo(p.points[0].x, p.points[0].y); for(let i=1; i<p.points.length; i++) ctx.lineTo(p.points[i].x, p.points[i].y); ctx.stroke(); } 
                 else if(p.tool === 'eraser' && p.points && p.points.length > 0) { ctx.beginPath(); ctx.globalCompositeOperation = 'destination-out'; ctx.strokeStyle = '#000'; ctx.lineWidth = p.size; ctx.moveTo(p.points[0].x, p.points[0].y); for(let i=1; i<p.points.length; i++) ctx.lineTo(p.points[i].x, p.points[i].y); ctx.stroke(); }
+                
+                // ② 빨간색 X 버튼 렌더링 복구
                 if(currentTool === 'move' && selectedObj && selectedObj.path === p && layers.objects) {
-                    const box = getTextHitBox(ctx, p); ctx.globalCompositeOperation = 'source-over'; ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#5D9CEC'; ctx.lineWidth = 2; ctx.strokeRect(box.x - 5, box.y - 5, box.w + 10, box.h + 10); ctx.setLineDash([]);
+                    const box = getTextHitBox(ctx, p); 
+                    ctx.globalCompositeOperation = 'source-over'; 
+                    ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#5D9CEC'; ctx.lineWidth = 2; ctx.strokeRect(box.x - 5, box.y - 5, box.w + 10, box.h + 10); ctx.setLineDash([]);
                     ctx.beginPath(); ctx.arc(box.xBtn.x, box.xBtn.y, box.xBtn.r, 0, Math.PI*2); ctx.fillStyle = '#ff4757'; ctx.fill(); ctx.fillStyle = 'white'; ctx.font = "bold 12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("X", box.xBtn.x, box.xBtn.y + 1); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; 
                 }
             }); ctx.globalCompositeOperation = 'source-over';
@@ -652,7 +833,30 @@
 
         function commitTextInput() { if(textInput.style.display === 'block' && textInput.value.trim() !== "") { const idx = textInput.dataset.idx; pushHistory(idx, paths[idx]); paths[idx].push({ tool: 'text', char: textInput.value, x: parseFloat(textInput.dataset.x), y: parseFloat(textInput.dataset.y) + 24, color: currentColor }); redrawCanvas(idx); saveAllData(); } textInput.style.display = 'none'; textInput.value = ""; }
         textInput.addEventListener('keydown', e => { if(e.key === 'Enter') { commitTextInput(); setTool('move'); } });
-        function undo() { if(historyStack.length > 0) { let last = historyStack.pop(); paths[last.idx] = last.snapshot; redrawCanvas(last.idx); saveAllData(); showToast("실행 취소"); } }
+        
+        // ① Undo 완벽 분리 적용
+        function undo() { 
+            if(globalUndo.length === 0) return;
+            let last = globalUndo.pop();
+            if(historyStacks[last.key] && historyStacks[last.key].length > 0) {
+                let snapshot = historyStacks[last.key].pop();
+                let isVisible = false;
+                
+                if(last.pNum === currentPage) { 
+                    paths[0] = snapshot; redrawCanvas(0); isVisible = true; 
+                } else if(viewMode === 2 && last.pNum === currentPage + 1) { 
+                    paths[1] = snapshot; redrawCanvas(1); isVisible = true; 
+                }
+                
+                if(isVisible) {
+                    saveAllData(); showToast("실행 취소");
+                } else {
+                    saveToDB(`${currentBook}_${last.pNum}`, snapshot);
+                    showToast(`${last.pNum}쪽 실행 취소됨`);
+                }
+            }
+        }
+        
         function saveAllData() { saveToDB(`${currentBook}_${currentPage}`, paths[0]); if(viewMode === 2 && currentPage < BOOK_DATA[currentBook].total) saveToDB(`${currentBook}_${currentPage+1}`, paths[1]); }
         
         function saveAsImage() { commitTextInput(); showToast("이미지 저장 중..."); exportCanvasBlob(0, currentPage); if(viewMode === 2 && currentPage < BOOK_DATA[currentBook].total) setTimeout(() => exportCanvasBlob(1, currentPage + 1), 500); }
